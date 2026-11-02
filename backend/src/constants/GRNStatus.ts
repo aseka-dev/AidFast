@@ -1,0 +1,25 @@
+
+export const GRN_STATUS = {
+  DRAFT: "DRAFT",
+  PENDING_VERIFICATION: "PENDING_VERIFICATION",
+  CHANGES_REQUESTED: "CHANGES_REQUESTED",
+  CONFIRMED: "CONFIRMED",
+  REVERSED: "REVERSED",
+} as const;
+
+export const ALLOWED_GRN_TRANSITIONS = {
+  DRAFT: ["PENDING_VERIFICATION"],
+  PENDING_VERIFICATION: ["CHANGES_REQUESTED", "CONFIRMED"],
+  CHANGES_REQUESTED: ["PENDING_VERIFICATION"],
+  CONFIRMED: ["REVERSED"],
+  REVERSED: [],
+};
+
+export function canChangeGRNStatus(
+  currentStatus: keyof typeof ALLOWED_GRN_TRANSITIONS,
+  newStatus: string
+): boolean {
+  return ALLOWED_GRN_TRANSITIONS[currentStatus].includes(
+    newStatus as never
+  );
+}
