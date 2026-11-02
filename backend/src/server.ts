@@ -6,6 +6,7 @@ import path from 'path';
 import mongoose from 'mongoose';
 
 import connectDB from './config/db';
+import medicineRequestRoutes from './routes/medicineRequestRoutes';
 
 // Load environment variables from backend/.env
 dotenv.config({
@@ -34,6 +35,9 @@ app.get('/api/health', (req, res) => {
         status: 'OK'
     });
 });
+// Public Medicine Request API
+app.use('/api/v1/public/medicine-requests', medicineRequestRoutes);
+
 // 404 handler
 app.use((_req, res) => {
     res.status(404).json({
