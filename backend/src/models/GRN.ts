@@ -1,6 +1,6 @@
 
 import mongoose, { Schema } from "mongoose";
-import { GRN_STATUS } from "../constants/grnStatus";
+import { GRN_STATUS } from "../constants/GRNStatus";
 
 const grnSchema = new Schema(
   {
