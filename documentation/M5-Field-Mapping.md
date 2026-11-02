@@ -130,8 +130,8 @@
 | `batchNumber`, `expiryDate`, `currentQuantity`, `batchStatus`, `safetyStatus` | `batches` | M2 |
 | `minimumStockLevel`, `status` | `pharmacyMedicines` | M2 |
 | `medicineName` | `medicineCatalog` | M2 |
-| `expiryAlertMonths`, `expiryWarningMonths`, `expiryCriticalMonths` | `pharmacySettings` | M1 |
-| `saleDate`, `totalAmount`, `status` | `sales` | M4 |
+| `expiryAlertMonths` (Number[], default [12, 9, 6]), `lowStockThreshold` (default 10) | `pharmacySettings` | M1 (differs from spec: spec has 3 separate fields) |
+| `saleDate`, `totalAmount`, `netAmount`, `status` (`completed`/`cancelled`) | `sales` | M4 (no `pharmacyId` yet; differs from spec) |
 | `requestStatus`, `preferredTownArea`, `submittedAt` | `medicineAvailabilityRequests` | M6 |
 
 ## 9. Expiry rules (calendar months, thresholds from `pharmacySettings`)
@@ -181,9 +181,11 @@ Money values are sent as strings because the database stores them as Decimal128.
 
 ## 12. Pending confirmation
 
-- [ ] M1: `pharmacyId` / `userId` names, and the `pharmacySettings` threshold fields
-- [ ] M2: `batches` and `pharmacyMedicines` fields (the models are not merged yet)
-- [ ] M4: `sales` field names (models exist in `backend/src/modules/sales/models`, so check them)
+- [x] M1: model names confirmed from code (`Pharmacy`, `User`, `PharmacySetting`); `pharmacyId` is used as the pharmacy reference
+- [ ] M1: spec has `expiryAlertMonths`, `expiryWarningMonths`, `expiryCriticalMonths`; code has one array (`expiryAlertMonths: [12, 9, 6]`). Which wins?
+- [ ] M2: `batches`, `pharmacyMedicines` and `medicineCatalog` fields and model names (not merged yet)
+- [x] M4: `Sale` model checked in `backend/src/modules/sales/models`
+- [ ] M4: `Sale` has no `pharmacyId`; status values are lowercase (`completed`/`cancelled`), not DRAFT/COMPLETED/VOIDED
 - [ ] M6: request collections, and whether a requested-quantity field will exist
 - [ ] Team: does `safetyNotices` need a `title` field?
 - [ ] Stakeholder: who verifies safety notices; low-availability threshold
