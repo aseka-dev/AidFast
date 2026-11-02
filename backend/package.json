@@ -1,12 +1,14 @@
 {
   "name": "backend",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "AidFast Backend API",
+  "main": "dist/server.js",
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
     "build": "tsc",
-    "start": "node dist/server.js"
+    "start": "node dist/server.js",
+    "seed:admin": "node dist/scripts/seedAdmin.js",
+    "seed:admin:dev": "ts-node-dev --transpile-only src/scripts/seedAdmin.ts"
   },
   "keywords": [],
   "author": "",
@@ -17,12 +19,15 @@
     "cors": "^2.8.6",
     "dotenv": "^18.0.9",
     "express": "^5.3.0",
-    "mongoose": "^9.11.4"
+    "jsonwebtoken": "^9.0.3",
+    "mongoose": "^9.11.4",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
+    "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^26.6.6",
     "ts-node-dev": "^2.0.0",
     "typescript": "^5.9.3"
