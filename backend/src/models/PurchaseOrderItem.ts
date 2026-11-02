@@ -1,0 +1,43 @@
+
+import mongoose, { Schema } from "mongoose";
+
+const purchaseOrderItemSchema = new Schema(
+  {
+    pharmacyId: {
+      type: Schema.Types.ObjectId,
+      ref: "Pharmacy",
+      required: true,
+    },
+    purchaseOrderId: {
+      type: Schema.Types.ObjectId,
+      ref: "PurchaseOrder",
+      required: true,
+    },
+    medicineId: {
+      type: Schema.Types.ObjectId,
+      ref: "MedicineCatalog",
+      required: true,
+    },
+    orderedQuantity: {
+      type: Number,
+      required: true,
+      min: 1,
+    },
+    unitPurchasePrice: {
+      type: Schema.Types.Decimal128,
+      required: true,
+    },
+    lineTotal: Schema.Types.Decimal128,
+  },
+  { timestamps: true, collection: "purchaseOrderItems" }
+);
+
+purchaseOrderItemSchema.index({
+  pharmacyId: 1,
+  purchaseOrderId: 1,
+});
+
+export default mongoose.model(
+  "PurchaseOrderItem",
+  purchaseOrderItemSchema
+);
