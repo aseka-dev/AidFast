@@ -10,7 +10,6 @@ const medicineCatalogSchema = new Schema({
   strength: { type: String, trim: true },
   dosageForm: { type: String, trim: true },
   packSize: { type: String, required: true, trim: true },
-  // Figma currently hides this, but it remains in the database specification.
   // Agree null/false semantics and workflow validation before making it mandatory.
   prescriptionRequired: { type: Boolean },
   description: { type: String, trim: true },
