@@ -1,7 +1,15 @@
+import mongoose, { Schema, Document } from "mongoose";
 
-import mongoose, { Schema } from "mongoose";
+export interface IPurchaseOrderItem extends Document {
+  pharmacyId: mongoose.Types.ObjectId;
+  purchaseOrderId: mongoose.Types.ObjectId;
+  medicineId: mongoose.Types.ObjectId;
+  orderedQuantity: number;
+  unitPurchasePrice: mongoose.Types.Decimal128;
+  lineTotal?: mongoose.Types.Decimal128;
+}
 
-const purchaseOrderItemSchema = new Schema(
+const purchaseOrderItemSchema = new Schema<IPurchaseOrderItem>(
   {
     pharmacyId: {
       type: Schema.Types.ObjectId,
@@ -29,7 +37,10 @@ const purchaseOrderItemSchema = new Schema(
     },
     lineTotal: Schema.Types.Decimal128,
   },
-  { timestamps: true, collection: "purchaseOrderItems" }
+  {
+    timestamps: true,
+    collection: "purchaseOrderItems",
+  }
 );
 
 purchaseOrderItemSchema.index({
@@ -37,7 +48,7 @@ purchaseOrderItemSchema.index({
   purchaseOrderId: 1,
 });
 
-export default mongoose.model(
+export default mongoose.model<IPurchaseOrderItem>(
   "PurchaseOrderItem",
   purchaseOrderItemSchema
 );
