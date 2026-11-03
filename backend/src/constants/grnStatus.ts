@@ -1,4 +1,3 @@
-
 export const GRN_STATUS = {
   DRAFT: "DRAFT",
   PENDING_VERIFICATION: "PENDING_VERIFICATION",
@@ -7,7 +6,13 @@ export const GRN_STATUS = {
   REVERSED: "REVERSED",
 } as const;
 
-export const ALLOWED_GRN_TRANSITIONS = {
+export type GRNStatus =
+  (typeof GRN_STATUS)[keyof typeof GRN_STATUS];
+
+export const ALLOWED_GRN_TRANSITIONS: Record<
+  GRNStatus,
+  readonly GRNStatus[]
+> = {
   DRAFT: ["PENDING_VERIFICATION"],
   PENDING_VERIFICATION: ["CHANGES_REQUESTED", "CONFIRMED"],
   CHANGES_REQUESTED: ["PENDING_VERIFICATION"],
@@ -16,10 +21,8 @@ export const ALLOWED_GRN_TRANSITIONS = {
 };
 
 export function canChangeGRNStatus(
-  currentStatus: keyof typeof ALLOWED_GRN_TRANSITIONS,
-  newStatus: string
+  currentStatus: GRNStatus,
+  newStatus: GRNStatus
 ): boolean {
-  return ALLOWED_GRN_TRANSITIONS[currentStatus].includes(
-    newStatus as never
-  );
+  return ALLOWED_GRN_TRANSITIONS[currentStatus].includes(newStatus);
 }

@@ -1,8 +1,30 @@
+import mongoose, { Schema, Document } from "mongoose";
+import { GRN_STATUS, GRNStatus } from "../constants/grnStatus";
 
-import mongoose, { Schema } from "mongoose";
-import { GRN_STATUS } from "../constants/GRNStatus";
+export interface IGRN extends Document {
+  pharmacyId: mongoose.Types.ObjectId;
+  supplierId: mongoose.Types.ObjectId;
+  purchaseOrderId?: mongoose.Types.ObjectId;
+  grnNumber: string;
+  invoiceNumber?: string;
+  receivedDate: Date;
+  status: GRNStatus;
+  verificationComment?: string;
+  submittedAt?: Date;
+  verifiedAt?: Date;
+  confirmedAt?: Date;
+  reversedAt?: Date;
+  reversalReason?: string;
+  inventoryPosted: boolean;
+  totalAmount?: mongoose.Types.Decimal128;
+  createdBy?: mongoose.Types.ObjectId;
+  submittedBy?: mongoose.Types.ObjectId;
+  verifiedBy?: mongoose.Types.ObjectId;
+  confirmedBy?: mongoose.Types.ObjectId;
+  reversedBy?: mongoose.Types.ObjectId;
+}
 
-const grnSchema = new Schema(
+const grnSchema = new Schema<IGRN>(
   {
     pharmacyId: {
       type: Schema.Types.ObjectId,
@@ -22,6 +44,7 @@ const grnSchema = new Schema(
     grnNumber: {
       type: String,
       required: true,
+      trim: true,
     },
     invoiceNumber: String,
     receivedDate: {
@@ -65,7 +88,10 @@ const grnSchema = new Schema(
       ref: "User",
     },
   },
-  { timestamps: true, collection: "grns" }
+  {
+    timestamps: true,
+    collection: "grns",
+  }
 );
 
 grnSchema.index(
@@ -73,4 +99,4 @@ grnSchema.index(
   { unique: true }
 );
 
-export default mongoose.model("GRN", grnSchema);
+export default mongoose.model<IGRN>("GRN", grnSchema);
