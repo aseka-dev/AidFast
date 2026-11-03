@@ -11,6 +11,8 @@ import settingsRoutes from './routes/settingsRoutes';
 import userRoutes from './routes/userRoutes';
 import medicineRequestRoutes from './routes/medicineRequestRoutes';
 import publicMedicineRoutes from './routes/publicMedicineRoutes';
+import publicPharmacyRoutes from './routes/publicPharmacyRotues';
+
 
 // Load environment variables from backend/.env
 dotenv.config({
@@ -56,6 +58,8 @@ app.use('/api/v1/users', userRoutes);
 app.use('/api/v1/public/medicine-requests', medicineRequestRoutes);
 // Public Medicine Search API (Member 6)
 app.use('/api/v1/public/medicines', publicMedicineRoutes);
+// Public Pharmacy Directory API (Member 6)
+app.use('/api/v1/public/pharmacies', publicPharmacyRoutes);
 
 // 404 handler
 app.use((_req, res) => {
