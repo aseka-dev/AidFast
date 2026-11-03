@@ -1,7 +1,27 @@
+import mongoose, { Schema, Document } from "mongoose";
 
-import mongoose, { Schema } from "mongoose";
+export interface IGRNItem extends Document {
+  pharmacyId: mongoose.Types.ObjectId;
+  grnId: mongoose.Types.ObjectId;
+  purchaseOrderItemId?: mongoose.Types.ObjectId;
+  medicineId: mongoose.Types.ObjectId;
+  batchId?: mongoose.Types.ObjectId;
+  batchNumber: string;
+  expiryDate: Date;
+  orderedQuantity?: number;
+  receivedQuantity: number;
+  damagedQuantity: number;
+  returnedQuantity: number;
+  rejectedQuantity: number;
+  acceptedQuantity: number;
+  rejectionReason?: string;
+  unitOfMeasure?: string;
+  wholesalePrice?: mongoose.Types.Decimal128;
+  retailPrice?: mongoose.Types.Decimal128;
+  lineTotal?: mongoose.Types.Decimal128;
+}
 
-const grnItemSchema = new Schema(
+const grnItemSchema = new Schema<IGRNItem>(
   {
     pharmacyId: {
       type: Schema.Types.ObjectId,
@@ -71,10 +91,12 @@ const grnItemSchema = new Schema(
     retailPrice: Schema.Types.Decimal128,
     lineTotal: Schema.Types.Decimal128,
   },
-  { timestamps: true, collection: "grnItems" }
+  {
+    timestamps: true,
+    collection: "grnItems",
+  }
 );
 
-// Rejected quantity includes damaged and returned units.
 grnItemSchema.pre("validate", function () {
   const received = this.receivedQuantity ?? 0;
   const rejected = this.rejectedQuantity ?? 0;
@@ -98,6 +120,12 @@ grnItemSchema.pre("validate", function () {
   this.acceptedQuantity = received - rejected;
 });
 
-grnItemSchema.index({ pharmacyId: 1, grnId: 1 });
+grnItemSchema.index({
+  pharmacyId: 1,
+  grnId: 1,
+});
 
-export default mongoose.model("GRNItem", grnItemSchema);
+export default mongoose.model<IGRNItem>(
+  "GRNItem",
+  grnItemSchema
+);
