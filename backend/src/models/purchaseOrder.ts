@@ -1,7 +1,23 @@
+import mongoose, { Schema, Document } from "mongoose";
 
-import mongoose, { Schema } from "mongoose";
+export interface IPurchaseOrder extends Document {
+  pharmacyId: mongoose.Types.ObjectId;
+  supplierId: mongoose.Types.ObjectId;
+  purchaseOrderNumber: string;
+  orderDate: Date;
+  expectedDeliveryDate?: Date;
+  status:
+    | "DRAFT"
+    | "SUBMITTED"
+    | "PARTIALLY_RECEIVED"
+    | "RECEIVED"
+    | "CANCELLED";
+  totalAmount?: mongoose.Types.Decimal128;
+  notes?: string;
+  createdBy?: mongoose.Types.ObjectId;
+}
 
-const purchaseOrderSchema = new Schema(
+const purchaseOrderSchema = new Schema<IPurchaseOrder>(
   {
     pharmacyId: {
       type: Schema.Types.ObjectId,
@@ -41,7 +57,10 @@ const purchaseOrderSchema = new Schema(
       ref: "User",
     },
   },
-  { timestamps: true, collection: "purchaseOrders" }
+  {
+    timestamps: true,
+    collection: "purchaseOrders",
+  }
 );
 
 purchaseOrderSchema.index(
@@ -49,4 +68,7 @@ purchaseOrderSchema.index(
   { unique: true }
 );
 
-export default mongoose.model("PurchaseOrder", purchaseOrderSchema);
+export default mongoose.model<IPurchaseOrder>(
+  "PurchaseOrder",
+  purchaseOrderSchema
+);
