@@ -16,6 +16,9 @@ import supplierRoutes from './routes/supplierRoutes';
 import grnRoutes from './routes/grnRoutes';
 
 import medicineRequestRoutes from './routes/medicineRequestRoutes';
+import publicMedicineRoutes from './routes/publicMedicineRoutes';
+import publicPharmacyRoutes from './routes/publicPharmacyRotues';
+
 
 dotenv.config({
     path: path.resolve(__dirname, '../.env')
@@ -55,6 +58,25 @@ app.use('/api/v1/pharmacies', pharmacyRoutes);
 app.use('/api/v1/settings', settingsRoutes);
 app.use('/api/v1/users', userRoutes);
 
+
+ // Public Medicine Request API (Member 6)
+app.use(
+    '/api/v1/public/medicine-requests',
+    medicineRequestRoutes
+);
+
+// Public Medicine Search API (Member 6)
+app.use(
+    '/api/v1/public/medicines',
+    publicMedicineRoutes
+);
+
+// Public Pharmacy Directory API (Member 6)
+app.use(
+    '/api/v1/public/pharmacies',
+    publicPharmacyRoutes
+);
+
 // Supplier API
 app.use(
     '/api/v1/pharmacies/:pharmacyId/suppliers',
@@ -65,12 +87,6 @@ app.use(
 app.use(
     '/api/v1/pharmacies/:pharmacyId/grns',
     grnRoutes
-);
-
-
-app.use(
-    '/api/v1/public/medicine-requests',
-    medicineRequestRoutes
 );
 
 
