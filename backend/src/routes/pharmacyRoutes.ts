@@ -4,18 +4,14 @@ import {
     requireSelectedPharmacy,
     AuthRequest
 } from '../middleware/authMiddleware';
+import { getMyPharmacies } from '../controllers/pharmacyController';
 
 const router = Router();
 
 router.get(
     '/my-pharmacies',
     authenticate,
-    (req, res) => {
-        // Your existing getMyPharmacies controller can be used here
-        res.status(200).json({
-            message: 'My pharmacies endpoint'
-        });
-    }
+    getMyPharmacies
 );
 
 const getSelectedPharmacy: RequestHandler = (req, res) => {

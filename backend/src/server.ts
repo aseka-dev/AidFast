@@ -1,4 +1,3 @@
-
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
@@ -6,6 +5,10 @@ import path from 'path';
 import mongoose from 'mongoose';
 
 import connectDB from './config/db';
+import authRoutes from './routes/authRoutes';
+import pharmacyRoutes from './routes/pharmacyRoutes';
+import settingsRoutes from './routes/settingsRoutes';
+import userRoutes from './routes/userRoutes';
 import medicineRequestRoutes from './routes/medicineRequestRoutes';
 
 // Load environment variables from backend/.env
@@ -35,7 +38,20 @@ app.get('/api/health', (req, res) => {
         status: 'OK'
     });
 });
-// Public Medicine Request API
+
+// Authentication and Platform routes (Member 1)
+app.use('/api/auth', authRoutes);
+app.use('/api/pharmacies', pharmacyRoutes);
+app.use('/api/settings', settingsRoutes);
+app.use('/api/users', userRoutes);
+
+// Versioned aliases for platform routes
+app.use('/api/v1/auth', authRoutes);
+app.use('/api/v1/pharmacies', pharmacyRoutes);
+app.use('/api/v1/settings', settingsRoutes);
+app.use('/api/v1/users', userRoutes);
+
+// Public Medicine Request API (Member 6)
 app.use('/api/v1/public/medicine-requests', medicineRequestRoutes);
 
 // 404 handler
