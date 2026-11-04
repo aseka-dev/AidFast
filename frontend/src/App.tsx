@@ -12,6 +12,7 @@ import LoginPage from './pages/auth/LoginPage';
 
 // Blank Public Pages
 import PublicHome from './pages/public/PublicHome';
+import FindMedicine from './pages/public/FindMedicine';
 
 // Blank Dashboard Pages
 import DashboardOverview from './pages/dashboard/DashboardOverview';
@@ -35,7 +36,7 @@ export const App: React.FC = () => {
           {/* Public Community Portal */}
           <Route element={<PublicLayout />}>
             <Route path="/" element={<PublicHome />} />
-            <Route path="/find-medicines" element={<PublicHome />} />
+            <Route path="/find-medicines" element={<FindMedicine />} />
             <Route path="/pharmacies" element={<PublicHome />} />
             <Route path="/how-it-works" element={<PublicHome />} />
             <Route path="/about-us" element={<PublicHome />} />
