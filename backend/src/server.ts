@@ -10,7 +10,8 @@ import pharmacyRoutes from './routes/pharmacyRoutes';
 import settingsRoutes from './routes/settingsRoutes';
 import userRoutes from './routes/userRoutes';
 import medicineRequestRoutes from './routes/medicineRequestRoutes';
-
+import alertRoutes from './routes/alertRoutes';
+import safetyRoutes from './routes/safetyRoutes';
 // Load environment variables from backend/.env
 dotenv.config({
     path: path.resolve(__dirname, '../.env')
