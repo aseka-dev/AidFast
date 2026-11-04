@@ -1,24 +1,32 @@
 import React, { useState } from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useNavigate } from 'react-router-dom';
 import DashboardSidebar from './DashboardSidebar';
 import DashboardHeader from './DashboardHeader';
+import { useAuth } from '../../context/useAuth';
 
 export const DashboardLayout: React.FC = () => {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const { user, currentPharmacy, logout } = useAuth();
+  const navigate = useNavigate();
 
-  // User profile matching Figma
-  const currentUser = {
-    name: 'Samira Ahmed',
-    role: 'Pharmacy Manager',
-    initials: 'SA'
+  const getInitials = (name?: string) => {
+    if (!name) return 'SA';
+    const parts = name.trim().split(' ');
+    if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+    return name.slice(0, 2).toUpperCase();
   };
 
-  const currentPharmacyName = 'Greenway Community Pharmacy';
+  const currentUser = {
+    name: user?.fullName || 'Samira Ahmed',
+    role: currentPharmacy?.role || user?.role || 'Pharmacy Manager',
+    initials: getInitials(user?.fullName)
+  };
+
+  const currentPharmacyName = currentPharmacy?.pharmacyName || 'Greenway Community Pharmacy';
 
   const handleSignOut = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('selectedPharmacyId');
-    window.location.href = '/';
+    logout();
+    navigate('/login', { replace: true });
   };
 
   return (
@@ -61,7 +69,7 @@ export const DashboardLayout: React.FC = () => {
           userInitials={currentUser.initials}
         />
 
-        {/* Page Content Body: Kept blank */}
+        {/* Page Content Body */}
         <main className="flex-1 overflow-y-auto bg-[#f8fafc]">
           <Outlet />
         </main>
