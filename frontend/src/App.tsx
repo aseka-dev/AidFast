@@ -10,10 +10,11 @@ import DashboardLayout from './components/layout/DashboardLayout';
 // Auth Pages
 import LoginPage from './pages/auth/LoginPage';
 
-// Blank Public Pages
+// Public Pages
 import PublicHome from './pages/public/PublicHome';
 import FindMedicine from './pages/public/FindMedicine';
 import Pharmacies from './pages/public/Pharmacies';
+import ViewPharmacy from './pages/public/ViewPharmacy';
 
 // Blank Dashboard Pages
 import DashboardOverview from './pages/dashboard/DashboardOverview';
@@ -39,6 +40,7 @@ export const App: React.FC = () => {
             <Route path="/" element={<PublicHome />} />
             <Route path="/find-medicines" element={<FindMedicine />} />
             <Route path="/pharmacies" element={<Pharmacies />} />
+            <Route path="/pharmacies/:id" element={<ViewPharmacy />} />
             <Route path="/how-it-works" element={<PublicHome />} />
             <Route path="/about-us" element={<PublicHome />} />
             <Route path="/request-medicine" element={<PublicHome />} />
