@@ -1,34 +1,25 @@
 
 import { Router } from "express";
 
+import {
+  createReturn,
+  getReturns,
+  getReturnById,
+  confirmReturn
+} from "../controllers/returnController";
+
 const router = Router();
 
-// Create a new return draft
-router.post("/", (_req, res) => {
-  res.status(501).json({
-    message: "Create return not implemented yet"
-  });
-});
+// Create a return draft
+router.post("/", createReturn);
 
-// Get all returns
-router.get("/", (_req, res) => {
-  res.status(501).json({
-    message: "Get returns not implemented yet"
-  });
-});
+// Get return history
+router.get("/", getReturns);
 
-// Get return by ID
-router.get("/:id", (_req, res) => {
-  res.status(501).json({
-    message: "Get return by ID not implemented yet"
-  });
-});
+// Get one return
+router.get("/:id", getReturnById);
 
 // Confirm a return
-router.post("/:id/confirm", (_req, res) => {
-  res.status(501).json({
-    message: "Confirm return not implemented yet"
-  });
-});
+router.post("/:id/confirm", confirmReturn);
 
 export default router;
