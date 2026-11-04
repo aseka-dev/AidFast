@@ -1,21 +1,27 @@
+
 import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Navigate
+} from 'react-router-dom';
+
 import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 
-// Layouts
 import PublicLayout from './components/layout/PublicLayout';
 import DashboardLayout from './components/layout/DashboardLayout';
 
-// Auth Pages
 import LoginPage from './pages/auth/LoginPage';
-
-// Blank Public Pages
 import PublicHome from './pages/public/PublicHome';
 
-// Blank Dashboard Pages
 import DashboardOverview from './pages/dashboard/DashboardOverview';
 import SettingsPage from './pages/dashboard/SettingsPage';
+
+import DistributorsPage from './pages/dashboard/DistributorsPage';
+import NewGrnPage from './pages/dashboard/NewGrnPage';
+
 import {
   MedicinesPage,
   InventoryPage,
@@ -46,10 +52,10 @@ export const App: React.FC = () => {
             <Route path="/contact" element={<PublicHome />} />
           </Route>
 
-          {/* Staff Login Screen (Member 1) */}
+          {/* Staff Login */}
           <Route path="/login" element={<LoginPage />} />
 
-          {/* Protected Pharmacy Staff Dashboard */}
+          {/* Protected Staff Dashboard */}
           <Route
             path="/dashboard"
             element={
@@ -59,18 +65,63 @@ export const App: React.FC = () => {
             }
           >
             <Route index element={<DashboardOverview />} />
-            <Route path="medicines" element={<MedicinesPage />} />
-            <Route path="inventory" element={<InventoryPage />} />
-            <Route path="purchasing" element={<PurchasingPage />} />
-            <Route path="transactions" element={<TransactionsPage />} />
-            <Route path="alerts" element={<AlertsPage />} />
-            <Route path="community-demand" element={<CommunityDemandPage />} />
-            <Route path="safety-notices" element={<SafetyNoticesPage />} />
-            <Route path="reports" element={<ReportsPage />} />
-            <Route path="settings" element={<SettingsPage />} />
+
+            <Route
+              path="medicines"
+              element={<MedicinesPage />}
+            />
+
+            <Route
+              path="inventory"
+              element={<InventoryPage />}
+            />
+
+            <Route
+              path="purchasing"
+              element={<PurchasingPage />}
+            />
+
+            <Route
+              path="purchasing/distributors"
+              element={<DistributorsPage />}
+            />
+
+            <Route
+              path="purchasing/new-grn"
+              element={<NewGrnPage />}
+            />
+
+            <Route
+              path="transactions"
+              element={<TransactionsPage />}
+            />
+
+            <Route
+              path="alerts"
+              element={<AlertsPage />}
+            />
+
+            <Route
+              path="community-demand"
+              element={<CommunityDemandPage />}
+            />
+
+            <Route
+              path="safety-notices"
+              element={<SafetyNoticesPage />}
+            />
+
+            <Route
+              path="reports"
+              element={<ReportsPage />}
+            />
+
+            <Route
+              path="settings"
+              element={<SettingsPage />}
+            />
           </Route>
 
-          {/* Fallback */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>
