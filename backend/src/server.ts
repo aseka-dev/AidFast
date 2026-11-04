@@ -1,3 +1,4 @@
+
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
@@ -5,13 +6,17 @@ import path from 'path';
 import mongoose from 'mongoose';
 
 import connectDB from './config/db';
+
 import authRoutes from './routes/authRoutes';
 import pharmacyRoutes from './routes/pharmacyRoutes';
 import settingsRoutes from './routes/settingsRoutes';
 import userRoutes from './routes/userRoutes';
+
+import supplierRoutes from './routes/supplierRoutes';
+import grnRoutes from './routes/grnRoutes';
+
 import medicineRequestRoutes from './routes/medicineRequestRoutes';
-import alertRoutes from './routes/alertRoutes';
-import safetyRoutes from './routes/safetyRoutes';
+
 // Load environment variables from backend/.env
 dotenv.config({
     path: path.resolve(__dirname, '../.env')
@@ -40,7 +45,6 @@ app.get('/api/health', (req, res) => {
     });
 });
 
-// Authentication and Platform routes (Member 1)
 app.use('/api/auth', authRoutes);
 app.use('/api/pharmacies', pharmacyRoutes);
 app.use('/api/settings', settingsRoutes);
@@ -52,10 +56,38 @@ app.use('/api/v1/pharmacies', pharmacyRoutes);
 app.use('/api/v1/settings', settingsRoutes);
 app.use('/api/v1/users', userRoutes);
 
-// Public Medicine Request API (Member 6)
-app.use('/api/v1/public/medicine-requests', medicineRequestRoutes);
 
-// 404 handler
+ // Public Medicine Request API (Member 6)
+app.use(
+    '/api/v1/public/medicine-requests',
+    medicineRequestRoutes
+);
+
+// Public Medicine Search API (Member 6)
+app.use(
+    '/api/v1/public/medicines',
+    publicMedicineRoutes
+);
+
+// Public Pharmacy Directory API (Member 6)
+app.use(
+    '/api/v1/public/pharmacies',
+    publicPharmacyRoutes
+);
+
+// Supplier API
+app.use(
+    '/api/v1/pharmacies/:pharmacyId/suppliers',
+    supplierRoutes
+);
+
+// GRN API
+app.use(
+    '/api/v1/pharmacies/:pharmacyId/grns',
+    grnRoutes
+);
+
+
 app.use((_req, res) => {
     res.status(404).json({
         success: false,
@@ -73,7 +105,9 @@ const startServer = async () => {
 
         app.listen(PORT, () => {
             console.log(`AidFast server running on port ${PORT}`);
-            console.log(`Health check: http://localhost:${PORT}/api/health`);
+            console.log(
+                `Health check: http://localhost:${PORT}/api/health`
+            );
         });
     } catch (error) {
         console.error('Failed to start AidFast server:', error);
