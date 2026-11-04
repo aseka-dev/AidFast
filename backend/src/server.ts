@@ -16,6 +16,10 @@ import supplierRoutes from './routes/supplierRoutes';
 import grnRoutes from './routes/grnRoutes';
 
 import medicineRequestRoutes from './routes/medicineRequestRoutes';
+import publicMedicineRoutes from './routes/publicMedicineRoutes';
+import publicPharmacyRoutes from './routes/publicPharmacyRotues';
+import alertRoutes from './routes/alertRoutes';
+import safetyRoutes from './routes/safetyRoutes';
 
 // Load environment variables from backend/.env
 dotenv.config({
@@ -45,13 +49,17 @@ app.get('/api/health', (req, res) => {
     });
 });
 
-app.use('/api/auth', authRoutes);
-app.use('/api/pharmacies', pharmacyRoutes);
-app.use('/api/settings', settingsRoutes);
-app.use('/api/users', userRoutes);
-
-// Versioned aliases for platform routes
-app.use('/api/v1/auth', authRoutes);
+ app.use('/api/auth', authRoutes);
+  app.use('/api/pharmacies', pharmacyRoutes);
+  app.use('/api/settings', settingsRoutes);
+  app.use('/api/users', userRoutes);
+  
+  // Alerts and Safety API (Member 5)
+  app.use('/api/v1', alertRoutes);
+  app.use('/api/v1', safetyRoutes);
+ 
+ // Versioned aliases for platform routes
+  app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/pharmacies', pharmacyRoutes);
 app.use('/api/v1/settings', settingsRoutes);
 app.use('/api/v1/users', userRoutes);
