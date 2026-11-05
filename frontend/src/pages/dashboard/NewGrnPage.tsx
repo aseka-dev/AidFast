@@ -1,5 +1,6 @@
 
 import React, { useEffect, useState } from 'react';
+
 import {
   Link,
   useNavigate,
@@ -8,6 +9,7 @@ import {
 
 import useAuth from '../../context/useAuth';
 import GrnItemTable from '../../components/grn/GrnItemTable';
+
 import {
   calculateGrnTotal,
   type GrnItem
@@ -72,12 +74,16 @@ const referenceId = (
   value?: string | { _id: string }
 ): string => {
   if (!value) return '';
-  return typeof value === 'string' ? value : value._id;
+  return typeof value === 'string'
+    ? value
+    : value._id;
 };
 
 const NewGrnPage: React.FC = () => {
   const navigate = useNavigate();
-  const { grnId: editGrnId } = useParams<{ grnId: string }>();
+
+  const { grnId: editGrnId } =
+    useParams<{ grnId: string }>();
 
   const isEditMode = Boolean(editGrnId);
   const auth = useAuth() as AuthSelection;
@@ -96,9 +102,12 @@ const NewGrnPage: React.FC = () => {
   const [items, setItems] = useState<GrnItem[]>([]);
 
   const [form, setForm] = useState<GrnForm>(emptyForm);
-  const [savedGrnId, setSavedGrnId] = useState<string | null>(null);
+  const [savedGrnId, setSavedGrnId] =
+    useState<string | null>(null);
 
-  const [recordStatus, setRecordStatus] = useState('DRAFT');
+  const [recordStatus, setRecordStatus] =
+    useState('DRAFT');
+
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -111,24 +120,20 @@ const NewGrnPage: React.FC = () => {
   const activeId = editGrnId || savedGrnId;
 
   useEffect(() => {
-    if (!root) {
-      setLoading(false);
-      return;
-    }
+    if (!root) return;
 
-    let cancelled = false;
+    const controller = new AbortController();
 
     const loadData = async () => {
-      setLoading(true);
-      setError('');
-
       try {
         const requests: Promise<Response>[] = [
           fetch(`${root}/suppliers`, {
-            credentials: 'include'
+            credentials: 'include',
+            signal: controller.signal
           }),
           fetch(`${root}/medicines`, {
-            credentials: 'include'
+            credentials: 'include',
+            signal: controller.signal
           })
         ];
 
@@ -136,7 +141,10 @@ const NewGrnPage: React.FC = () => {
           requests.push(
             fetch(
               `${root}/grns/${encodeURIComponent(editGrnId)}`,
-              { credentials: 'include' }
+              {
+                credentials: 'include',
+                signal: controller.signal
+              }
             )
           );
         }
@@ -181,18 +189,21 @@ const NewGrnPage: React.FC = () => {
           );
         }
 
-        if (cancelled) return;
+        if (controller.signal.aborted) return;
 
         setSuppliers(supplierRecords);
         setMedicines(medicineRecords);
 
         if (editGrnId) {
           const result = results[2];
+
           const existing: ExistingGrn =
             result.data?.grn || result.data || result;
 
           if (!existing?._id) {
-            throw new Error('GRN record was not returned.');
+            throw new Error(
+              'GRN record was not returned.'
+            );
           }
 
           if (!Array.isArray(existing.items)) {
@@ -206,11 +217,20 @@ const NewGrnPage: React.FC = () => {
 
           setForm({
             grnNumber: existing.grnNumber || '',
-            supplierId: referenceId(existing.supplierId),
-            invoiceNumber: existing.invoiceNumber || '',
-            invoiceDate: dateInput(existing.invoiceDate),
-            receivedDate: dateInput(existing.receivedDate),
-            purchaseOrderId: referenceId(existing.purchaseOrderId)
+            supplierId: referenceId(
+              existing.supplierId
+            ),
+            invoiceNumber:
+              existing.invoiceNumber || '',
+            invoiceDate: dateInput(
+              existing.invoiceDate
+            ),
+            receivedDate: dateInput(
+              existing.receivedDate
+            ),
+            purchaseOrderId: referenceId(
+              existing.purchaseOrderId
+            )
           });
 
           setItems(existing.items);
@@ -220,22 +240,26 @@ const NewGrnPage: React.FC = () => {
           setForm(emptyForm);
           setItems([]);
         }
+
+        setError('');
       } catch (err) {
-        if (!cancelled) {
-          setError(
-            err instanceof Error ? err.message : 'Unable to load GRN.'
-          );
-        }
+        if (controller.signal.aborted) return;
+
+        setError(
+          err instanceof Error
+            ? err.message
+            : 'Unable to load GRN.'
+        );
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!controller.signal.aborted) {
+          setLoading(false);
+        }
       }
     };
 
     void loadData();
 
-    return () => {
-      cancelled = true;
-    };
+    return () => controller.abort();
   }, [root, editGrnId]);
 
   const updateForm = (
@@ -312,7 +336,10 @@ const NewGrnPage: React.FC = () => {
         return 'Rejected quantity must include damaged and returned units.';
       }
 
-      if (item.rejectedQuantity > item.receivedQuantity) {
+      if (
+        item.rejectedQuantity >
+        item.receivedQuantity
+      ) {
         return 'Rejected quantity cannot exceed received quantity.';
       }
 
@@ -343,16 +370,21 @@ const NewGrnPage: React.FC = () => {
 
     const payload = {
       ...form,
-      purchaseOrderId: form.purchaseOrderId || undefined,
-      invoiceDate: form.invoiceDate || undefined,
+      purchaseOrderId:
+        form.purchaseOrderId || undefined,
+      invoiceDate:
+        form.invoiceDate || undefined,
       totalAmount: calculateGrnTotal(items),
       items: items.map((item) => ({
         ...item,
         acceptedQuantity:
-          item.receivedQuantity - item.rejectedQuantity,
+          item.receivedQuantity -
+          item.rejectedQuantity,
         lineTotal:
-          (item.receivedQuantity - item.rejectedQuantity) *
-          item.wholesalePrice
+          (
+            item.receivedQuantity -
+            item.rejectedQuantity
+          ) * item.wholesalePrice
       }))
     };
 
@@ -379,12 +411,16 @@ const NewGrnPage: React.FC = () => {
       }
 
       const result = await response.json();
-      const saved = result.data?.grn || result.data || result;
+      const saved =
+        result.data?.grn || result.data || result;
 
-      const id = saved?._id || saved?.id || activeId;
+      const id =
+        saved?._id || saved?.id || activeId;
 
       if (!id) {
-        throw new Error('Saved GRN ID was not returned.');
+        throw new Error(
+          'Saved GRN ID was not returned.'
+        );
       }
 
       setSavedGrnId(id);
@@ -393,8 +429,11 @@ const NewGrnPage: React.FC = () => {
       return id;
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : 'Unable to save GRN.'
+        err instanceof Error
+          ? err.message
+          : 'Unable to save GRN.'
       );
+
       return null;
     } finally {
       setSaving(false);
@@ -430,10 +469,15 @@ const NewGrnPage: React.FC = () => {
       }
 
       setRecordStatus('PENDING_VERIFICATION');
-      navigate('/dashboard/purchasing/verification');
+
+      navigate(
+        '/dashboard/purchasing/verification'
+      );
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : 'Submission failed.'
+        err instanceof Error
+          ? err.message
+          : 'Submission failed.'
       );
     } finally {
       setSaving(false);
@@ -469,11 +513,12 @@ const NewGrnPage: React.FC = () => {
         <span className="font-semibold text-emerald-700">
           Goods Received
         </span>
+
         {' → Draft GRN → Submit for Verification → '}
         Independent Verification → Confirmed GRN → Inventory Update
       </div>
 
-      {loading && (
+      {loading && root && (
         <p className="text-sm text-gray-500">
           Loading GRN information...
         </p>
@@ -505,8 +550,8 @@ const NewGrnPage: React.FC = () => {
 
       {isEditMode && !canEdit && !loading && (
         <div className="rounded-lg bg-amber-50 p-4 text-sm text-amber-800">
-          This GRN cannot be edited because its current status is
-          {' '}{recordStatus}.
+          This GRN cannot be edited because its current status is{' '}
+          {recordStatus}.
         </div>
       )}
 
@@ -516,6 +561,7 @@ const NewGrnPage: React.FC = () => {
             <h2 className="text-lg font-semibold text-emerald-950">
               General Information
             </h2>
+
             <p className="text-sm text-gray-500">
               Distributor invoice and receipt references for this GRN.
             </p>
@@ -523,28 +569,46 @@ const NewGrnPage: React.FC = () => {
 
           <div className="grid gap-5 md:grid-cols-2">
             <label className="space-y-2 text-sm">
-              <span className="font-medium">GRN Number *</span>
+              <span className="font-medium">
+                GRN Number *
+              </span>
+
               <input
                 className={fieldClass}
                 value={form.grnNumber}
                 onChange={(e) =>
-                  updateForm('grnNumber', e.target.value)
+                  updateForm(
+                    'grnNumber',
+                    e.target.value
+                  )
                 }
               />
             </label>
 
             <label className="space-y-2 text-sm">
-              <span className="font-medium">Distributor *</span>
+              <span className="font-medium">
+                Distributor *
+              </span>
+
               <select
                 className={fieldClass}
                 value={form.supplierId}
                 onChange={(e) =>
-                  updateForm('supplierId', e.target.value)
+                  updateForm(
+                    'supplierId',
+                    e.target.value
+                  )
                 }
               >
-                <option value="">Select distributor</option>
+                <option value="">
+                  Select distributor
+                </option>
+
                 {suppliers.map((supplier) => (
-                  <option key={supplier._id} value={supplier._id}>
+                  <option
+                    key={supplier._id}
+                    value={supplier._id}
+                  >
                     {supplier.supplierName}
                   </option>
                 ))}
@@ -555,23 +619,33 @@ const NewGrnPage: React.FC = () => {
               <span className="font-medium">
                 Distributor Invoice Number *
               </span>
+
               <input
                 className={fieldClass}
                 value={form.invoiceNumber}
                 onChange={(e) =>
-                  updateForm('invoiceNumber', e.target.value)
+                  updateForm(
+                    'invoiceNumber',
+                    e.target.value
+                  )
                 }
               />
             </label>
 
             <label className="space-y-2 text-sm">
-              <span className="font-medium">Invoice Date</span>
+              <span className="font-medium">
+                Invoice Date
+              </span>
+
               <input
                 type="date"
                 className={fieldClass}
                 value={form.invoiceDate}
                 onChange={(e) =>
-                  updateForm('invoiceDate', e.target.value)
+                  updateForm(
+                    'invoiceDate',
+                    e.target.value
+                  )
                 }
               />
             </label>
@@ -580,12 +654,16 @@ const NewGrnPage: React.FC = () => {
               <span className="font-medium">
                 Goods Received Date *
               </span>
+
               <input
                 type="date"
                 className={fieldClass}
                 value={form.receivedDate}
                 onChange={(e) =>
-                  updateForm('receivedDate', e.target.value)
+                  updateForm(
+                    'receivedDate',
+                    e.target.value
+                  )
                 }
               />
             </label>
@@ -594,11 +672,15 @@ const NewGrnPage: React.FC = () => {
               <span className="font-medium">
                 Purchase Order Reference (Optional)
               </span>
+
               <input
                 className={fieldClass}
                 value={form.purchaseOrderId}
                 onChange={(e) =>
-                  updateForm('purchaseOrderId', e.target.value)
+                  updateForm(
+                    'purchaseOrderId',
+                    e.target.value
+                  )
                 }
               />
             </label>
@@ -618,7 +700,9 @@ const NewGrnPage: React.FC = () => {
         <button
           type="button"
           onClick={() =>
-            navigate('/dashboard/purchasing/verification')
+            navigate(
+              '/dashboard/purchasing/verification'
+            )
           }
           className="rounded-lg px-4 py-3 text-sm font-semibold text-emerald-700"
         >
@@ -628,7 +712,12 @@ const NewGrnPage: React.FC = () => {
         <button
           type="button"
           onClick={() => void saveDraft()}
-          disabled={saving || loading || !root || !canEdit}
+          disabled={
+            saving ||
+            loading ||
+            !root ||
+            !canEdit
+          }
           className="rounded-lg border border-emerald-200 px-5 py-3 text-sm font-semibold text-emerald-800 disabled:opacity-50"
         >
           Save Draft
@@ -636,11 +725,20 @@ const NewGrnPage: React.FC = () => {
 
         <button
           type="button"
-          onClick={() => void submitForVerification()}
-          disabled={saving || loading || !root || !canEdit}
+          onClick={() =>
+            void submitForVerification()
+          }
+          disabled={
+            saving ||
+            loading ||
+            !root ||
+            !canEdit
+          }
           className="rounded-lg bg-emerald-700 px-5 py-3 text-sm font-semibold text-white disabled:opacity-50"
         >
-          {saving ? 'Processing...' : 'Submit for Verification'}
+          {saving
+            ? 'Processing...'
+            : 'Submit for Verification'}
         </button>
       </div>
     </div>
