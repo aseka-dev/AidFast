@@ -24,18 +24,22 @@ import Pharmacies from './pages/public/Pharmacies';
 import ViewPharmacy from './pages/public/ViewPharmacy';
 import RequestMedicine from './pages/public/RequestMedicine';
 
+// Dashboard pages
 import DashboardOverview from './pages/dashboard/DashboardOverview';
 import SettingsPage from './pages/dashboard/SettingsPage';
 
+// Purchasing pages
 import DistributorsPage from './pages/dashboard/DistributorsPage';
 import NewGrnPage from './pages/dashboard/NewGrnPage';
+import GrnRegisterPage from './pages/dashboard/GrnRegisterPage';
+import GrnVerificationPage from './pages/dashboard/GrnVerificationPage';
+import GrnDetailsPage from './pages/dashboard/GrnDetailsPage';
 
 import SalesPage from './pages/dashboard/SalesPage';
 
 import {
   MedicinesPage,
   InventoryPage,
-  PurchasingPage,
   TransactionsPage,
   AlertsPage,
   CommunityDemandPage,
@@ -48,6 +52,7 @@ export const App: React.FC = () => {
     <AuthProvider>
       <BrowserRouter>
         <Routes>
+
           {/* Public Community Portal */}
           <Route element={<PublicLayout />}>
             <Route path="/" element={<PublicHome />} />
@@ -67,46 +72,28 @@ export const App: React.FC = () => {
           <Route path="/login" element={<LoginPage />} />
 
           {/* Protected Staff Dashboard */}
-          <Route
-            path="/dashboard"
-            element={
-              <ProtectedRoute>
-                <DashboardLayout />
-              </ProtectedRoute>
-            }
-          >
+          <Route path="/dashboard"element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
             <Route index element={<DashboardOverview />} />
 
-            <Route
-              path="medicines"
-              element={<MedicinesPage />}
-            />
+            {/* M2 */}
+            <Route path="medicines" element={<MedicinesPage />}/>
+            <Route path="inventory" element={<InventoryPage />}/>
 
-            <Route
-              path="inventory"
-              element={<InventoryPage />}
-            />
+            {/* M3 - Purchasing */}
+            <Route path="purchasing" element={<GrnRegisterPage />}/>
+            <Route path="purchasing/distributors" element={<DistributorsPage />}/>
+            <Route path="purchasing/verification" element={<GrnVerificationPage />}/>
+            <Route path="purchasing/new-grn" element={<NewGrnPage />} />
+            <Route path="purchasing/grns/:grnId"element={<GrnDetailsPage />}/>
+            <Route path="purchasing/grns/:grnId/edit" element={<NewGrnPage />}/>
 
-            <Route
-              path="purchasing"
-              element={<PurchasingPage />}
-            />
-
-            <Route
-              path="purchasing/distributors"
-              element={<DistributorsPage />}
-            />
-
-            <Route
-              path="purchasing/new-grn"
-              element={<NewGrnPage />}
-            />
-
+            {/* M4 */}
             <Route
               path="transactions"
               element={<TransactionsPage />}
             />
 
+            {/* M5 / M6 */}
             <Route
               path="sales"
               element={<SalesPage />}
@@ -116,29 +103,29 @@ export const App: React.FC = () => {
               path="alerts"
               element={<AlertsPage />}
             />
-
             <Route
               path="community-demand"
               element={<CommunityDemandPage />}
             />
-
             <Route
               path="safety-notices"
               element={<SafetyNoticesPage />}
             />
-
             <Route
               path="reports"
               element={<ReportsPage />}
             />
 
+            {/* M1 */}
             <Route
               path="settings"
               element={<SettingsPage />}
             />
           </Route>
 
+          {/* Fallback */}
           <Route path="*" element={<Navigate to="/" replace />} />
+
         </Routes>
       </BrowserRouter>
     </AuthProvider>

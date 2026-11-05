@@ -8,7 +8,8 @@
     "build": "tsc",
     "start": "node dist/server.js",
     "seed:admin": "node dist/scripts/seedAdmin.js",
-    "seed:admin:dev": "ts-node-dev --transpile-only src/scripts/seedAdmin.ts"
+    "seed:admin:dev": "ts-node-dev --transpile-only src/scripts/seedAdmin.ts",
+    "test": "npm run build && node --test dist/tests/*.test.js"
   },
   "keywords": [],
   "author": "",

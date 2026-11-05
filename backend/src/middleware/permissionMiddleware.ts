@@ -7,7 +7,6 @@ const requirePermission = (permission: string) => {
         res: Response,
         next: NextFunction
     ): void => {
-
         if (!req.user?.pharmacyId) {
             res.status(403).json({
                 message: 'Pharmacy selection required'
@@ -15,7 +14,13 @@ const requirePermission = (permission: string) => {
             return;
         }
 
-        if (!req.user.permissions?.includes(permission)) {
+        const userPermissions = req.user.permissions || [];
+        const hasPermission =
+            userPermissions.includes('*') ||
+            userPermissions.includes(permission) ||
+            userPermissions.some((p) => p.endsWith(':*') && permission.startsWith(p.slice(0, -1)));
+
+        if (!hasPermission) {
             res.status(403).json({
                 message: 'You do not have permission to perform this action'
             });
