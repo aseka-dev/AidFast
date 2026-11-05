@@ -1,5 +1,5 @@
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import useAuth from '../../context/useAuth';
 
@@ -49,14 +49,12 @@ const DistributorsPage: React.FC = () => {
     ? `${API_BASE}/api/v1/pharmacies/${encodeURIComponent(pharmacyId)}/suppliers`
     : '';
 
-  const loadSuppliers = async () => {
+  const activeError = !endpoint ? 'No pharmacy is selected.' : error;
+
+  const loadSuppliers = useCallback(async () => {
     if (!endpoint) {
-      setError('No pharmacy is selected.');
       return;
     }
-
-    setLoading(true);
-    setError('');
 
     try {
       const response = await fetch(endpoint, {
@@ -85,16 +83,55 @@ const DistributorsPage: React.FC = () => {
       }
 
       setSuppliers(records);
+      setError('');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Request failed.');
     } finally {
       setLoading(false);
     }
-  };
+  }, [endpoint]);
 
   useEffect(() => {
-    void loadSuppliers();
-    // Reload whenever the selected pharmacy changes.
+    if (!endpoint) return;
+
+    let cancelled = false;
+
+    fetch(endpoint, { credentials: 'include' })
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error(
+            res.status === 501
+              ? 'Supplier API is not implemented yet.'
+              : `Unable to load distributors (${res.status}).`
+          );
+        }
+        return res.json();
+      })
+      .then((result) => {
+        if (cancelled) return;
+        const records = Array.isArray(result)
+          ? result
+          : Array.isArray(result.data)
+            ? result.data
+            : Array.isArray(result.data?.suppliers)
+              ? result.data.suppliers
+              : null;
+        if (!records) {
+          throw new Error('Unexpected supplier API response format.');
+        }
+        setSuppliers(records);
+        setError('');
+        setLoading(false);
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        setError(err instanceof Error ? err.message : 'Request failed.');
+        setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, [endpoint]);
 
   const filtered = useMemo(() => {
@@ -185,9 +222,9 @@ const DistributorsPage: React.FC = () => {
         </button>
       </div>
 
-      {error && (
+      {activeError && (
         <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
-          {error}
+          {activeError}
         </div>
       )}
 

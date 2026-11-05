@@ -1,42 +1,15 @@
 
 import React from 'react';
+import type { GrnItem } from './grnUtils';
+import { emptyItem, calculateGrnTotal, accepted } from './grnUtils';
 
-export interface GrnItem {
-  medicineId: string;
-  batchNumber: string;
-  expiryDate: string;
-  receivedQuantity: number;
-  damagedQuantity: number;
-  returnedQuantity: number;
-  rejectedQuantity: number;
-  wholesalePrice: number;
-}
+export type { GrnItem };
 
 interface Props {
   items: GrnItem[];
   medicines: { _id: string; name: string }[];
   onChange: (items: GrnItem[]) => void;
 }
-
-const emptyItem = (): GrnItem => ({
-  medicineId: '',
-  batchNumber: '',
-  expiryDate: '',
-  receivedQuantity: 0,
-  damagedQuantity: 0,
-  returnedQuantity: 0,
-  rejectedQuantity: 0,
-  wholesalePrice: 0
-});
-
-const accepted = (item: GrnItem) =>
-  Math.max(0, item.receivedQuantity - item.rejectedQuantity);
-
-export const calculateGrnTotal = (items: GrnItem[]) =>
-  items.reduce(
-    (sum, item) => sum + accepted(item) * item.wholesalePrice,
-    0
-  );
 
 const GrnItemTable: React.FC<Props> = ({
   items,
