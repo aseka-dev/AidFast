@@ -15,7 +15,9 @@ import DashboardLayout from './components/layout/DashboardLayout';
 
 import LoginPage from './pages/auth/LoginPage';
 
-// Public pages
+
+
+// Public Pages
 import PublicHome from './pages/public/PublicHome';
 import FindMedicine from './pages/public/FindMedicine';
 import Pharmacies from './pages/public/Pharmacies';
@@ -33,7 +35,8 @@ import GrnRegisterPage from './pages/dashboard/GrnRegisterPage';
 import GrnVerificationPage from './pages/dashboard/GrnVerificationPage';
 import GrnDetailsPage from './pages/dashboard/GrnDetailsPage';
 
-// Other members' modules
+import SalesPage from './pages/dashboard/SalesPage';
+
 import {
   MedicinesPage,
   InventoryPage,
@@ -91,6 +94,11 @@ export const App: React.FC = () => {
             />
 
             {/* M5 / M6 */}
+            <Route
+              path="sales"
+              element={<SalesPage />}
+            />
+
             <Route
               path="alerts"
               element={<AlertsPage />}
