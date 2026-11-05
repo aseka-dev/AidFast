@@ -2,10 +2,8 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import useAuth from '../../context/useAuth';
-import GrnItemTable, {
-  calculateGrnTotal,
-  type GrnItem
-} from '../../components/grn/GrnItemTable';
+import GrnItemTable from '../../components/grn/GrnItemTable';
+import { calculateGrnTotal, type GrnItem } from '../../components/grn/grnUtils';
 
 interface Supplier {
   _id: string;
@@ -58,18 +56,16 @@ const NewGrnPage: React.FC = () => {
     ? `${API_BASE}/api/v1/pharmacies/${encodeURIComponent(pharmacyId)}`
     : '';
 
+  const activeError = !root ? 'Please select a pharmacy before creating a GRN.' : error;
+
   useEffect(() => {
     if (!root) {
-      setError('Please select a pharmacy before creating a GRN.');
       return;
     }
 
     let cancelled = false;
 
     const loadOptions = async () => {
-      setLoading(true);
-      setError('');
-
       try {
         const [supplierResponse, medicineResponse] = await Promise.all([
           fetch(`${root}/suppliers`, { credentials: 'include' }),
@@ -301,9 +297,9 @@ const NewGrnPage: React.FC = () => {
 
       {loading && <p className="text-sm">Loading form data...</p>}
 
-      {error && (
+      {activeError && (
         <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-          {error}
+          {activeError}
         </div>
       )}
 
