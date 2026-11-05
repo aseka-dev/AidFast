@@ -16,6 +16,7 @@ import DashboardLayout from './components/layout/DashboardLayout';
 import LoginPage from './pages/auth/LoginPage';
 
 
+
 // Public Pages
 import PublicHome from './pages/public/PublicHome';
 import FindMedicine from './pages/public/FindMedicine';
@@ -28,6 +29,8 @@ import SettingsPage from './pages/dashboard/SettingsPage';
 
 import DistributorsPage from './pages/dashboard/DistributorsPage';
 import NewGrnPage from './pages/dashboard/NewGrnPage';
+
+import SalesPage from './pages/dashboard/SalesPage';
 
 import {
   MedicinesPage,
@@ -102,6 +105,11 @@ export const App: React.FC = () => {
             <Route
               path="transactions"
               element={<TransactionsPage />}
+            />
+
+            <Route
+              path="sales"
+              element={<SalesPage />}
             />
 
             <Route
