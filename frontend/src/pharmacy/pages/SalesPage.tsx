@@ -1,5 +1,6 @@
 
 import React, { useState } from "react";
+import FIFOAllocationPreview from "../../components/sales/FIFOAllocationPreview";
 
 type SaleItem = {
   id: number;
@@ -125,6 +126,12 @@ const SalesPage: React.FC = () => {
         >
           + Add Item
         </button>
+
+        <FIFOAllocationPreview
+         medicine={medicine}
+         quantity={quantity}
+        />
+
       </div>
 
       <div className="bg-white rounded-xl border border-gray-200 p-6">
