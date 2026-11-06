@@ -1,13 +1,8 @@
-import React from 'react';
-import {
-  BrowserRouter,
-  Routes,
-  Route,
-  Navigate
-} from 'react-router-dom';
+import React from "react";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 // Shared Auth Provider
-import { AuthProvider } from './shared';
+import { AuthProvider } from "./shared";
 
 // Community Portal Domain (Public / Patient Facing - M6)
 import {
@@ -16,8 +11,8 @@ import {
   FindMedicine,
   Pharmacies,
   ViewPharmacy,
-  RequestMedicine
-} from './community';
+  RequestMedicine,
+} from "./community";
 
 // Pharmacy Management Portal Domain (B2B Staff & Admin - M1-M5)
 import {
@@ -38,29 +33,34 @@ import {
   AlertsPage,
   CommunityDemandPage,
   SafetyNoticesPage,
-  ReportsPage
-} from './pharmacy';
+  ReportsPage,
+} from "./pharmacy";
 
-const appMode = import.meta.env.VITE_APP_MODE || 'community';
+const appMode = import.meta.env.VITE_APP_MODE || "community";
 
 export const App: React.FC = () => {
   return (
     <AuthProvider>
       <BrowserRouter>
         <Routes>
-
           {/* ========================================================
               COMMUNITY PORTAL (Public & Free - No Login Required)
               ======================================================== */}
+
+          <Route
+            path="/"
+            element={
+              appMode === "pharmacy" ? (
+                <Navigate to="/login" replace />
+              ) : (
+                <PublicLayout />
+              )
+            }
+          >
+            <Route index element={<PublicHome />} />
+          </Route>
+
           <Route element={<PublicLayout />}>
-            <Route
-  path="/"
-  element={
-    appMode === 'pharmacy'
-      ? <Navigate to="/login" replace />
-      : <PublicHome />
-  }
-/>
             <Route path="/find-medicines" element={<FindMedicine />} />
             <Route path="/pharmacies" element={<Pharmacies />} />
             <Route path="/pharmacies/:id" element={<ViewPharmacy />} />
@@ -96,11 +96,20 @@ export const App: React.FC = () => {
 
             {/* M3: Purchasing & GRN Workflow */}
             <Route path="purchasing" element={<GrnRegisterPage />} />
-            <Route path="purchasing/distributors" element={<DistributorsPage />} />
-            <Route path="purchasing/verification" element={<GrnVerificationPage />} />
+            <Route
+              path="purchasing/distributors"
+              element={<DistributorsPage />}
+            />
+            <Route
+              path="purchasing/verification"
+              element={<GrnVerificationPage />}
+            />
             <Route path="purchasing/new-grn" element={<NewGrnPage />} />
             <Route path="purchasing/grns/:grnId" element={<GrnDetailsPage />} />
-            <Route path="purchasing/grns/:grnId/edit" element={<NewGrnPage />} />
+            <Route
+              path="purchasing/grns/:grnId/edit"
+              element={<NewGrnPage />}
+            />
 
             {/* M4: Sales & Transactions */}
             <Route path="transactions" element={<TransactionsPage />} />
@@ -118,7 +127,6 @@ export const App: React.FC = () => {
 
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/" replace />} />
-
         </Routes>
       </BrowserRouter>
     </AuthProvider>
