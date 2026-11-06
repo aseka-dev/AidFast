@@ -41,6 +41,8 @@ import {
   ReportsPage
 } from './pharmacy';
 
+const appMode = import.meta.env.VITE_APP_MODE || 'community';
+
 export const App: React.FC = () => {
   return (
     <AuthProvider>
@@ -51,7 +53,14 @@ export const App: React.FC = () => {
               COMMUNITY PORTAL (Public & Free - No Login Required)
               ======================================================== */}
           <Route element={<PublicLayout />}>
-            <Route path="/" element={<PublicHome />} />
+            <Route
+  path="/"
+  element={
+    appMode === 'pharmacy'
+      ? <Navigate to="/login" replace />
+      : <PublicHome />
+  }
+/>
             <Route path="/find-medicines" element={<FindMedicine />} />
             <Route path="/pharmacies" element={<Pharmacies />} />
             <Route path="/pharmacies/:id" element={<ViewPharmacy />} />
