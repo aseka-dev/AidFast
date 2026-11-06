@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import AidFastLogo from '../common/AidFastLogo';
+import AidFastLogo from '../../shared/components/AidFastLogo';
 
 export const PublicFooter: React.FC = () => {
   const quickLinks = [

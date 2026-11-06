@@ -7,13 +7,13 @@ import {
   useParams
 } from 'react-router-dom';
 
-import useAuth from '../../context/useAuth';
-import GrnItemTable from '../../components/grn/GrnItemTable';
+import useAuth from '../../shared/context/useAuth';
+import GrnItemTable from '../components/grn/GrnItemTable';
 
 import {
   calculateGrnTotal,
   type GrnItem
-} from '../../components/grn/grnUtils';
+} from '../components/grn/grnUtils';
 
 interface Supplier {
   _id: string;

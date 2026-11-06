@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { NavLink, Link } from 'react-router-dom';
-import AidFastLogo from '../common/AidFastLogo';
-import { MenuIcon, CloseIcon } from '../icons/Icons';
+import AidFastLogo from '../../shared/components/AidFastLogo';
+import { MenuIcon, CloseIcon } from '../../shared/components/Icons';
 
 export const PublicHeader: React.FC = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -43,21 +43,13 @@ export const PublicHeader: React.FC = () => {
             ))}
           </nav>
 
-          {/* Right actions: Request a Medicine + Staff Dashboard shortcut */}
+          {/* Right actions: Request a Medicine */}
           <div className="hidden md:flex items-center space-x-4">
             <Link
               to="/request-medicine"
               className="inline-flex items-center justify-center px-5 py-2.5 rounded-lg text-sm font-medium text-white bg-[#0a5c40] hover:bg-[#084b34] transition-all shadow-sm focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-[#0a5c40]"
             >
               Request a Medicine
-            </Link>
-            
-            <Link
-              to="/dashboard"
-              className="inline-flex items-center justify-center px-3 py-2 text-xs font-medium text-emerald-800 bg-emerald-50 hover:bg-emerald-100 rounded-md border border-emerald-200 transition"
-              title="Go to Pharmacy Staff Dashboard"
-            >
-              Staff Portal
             </Link>
           </div>
 
@@ -102,13 +94,6 @@ export const PublicHeader: React.FC = () => {
               className="w-full text-center py-2.5 px-4 rounded-lg text-sm font-medium text-white bg-[#0a5c40] hover:bg-[#084b34]"
             >
               Request a Medicine
-            </Link>
-            <Link
-              to="/dashboard"
-              onClick={() => setMobileMenuOpen(false)}
-              className="w-full text-center py-2 px-4 rounded-md text-xs font-medium text-emerald-800 bg-emerald-50 border border-emerald-200"
-            >
-              Staff Portal (Dashboard)
             </Link>
           </div>
         </div>

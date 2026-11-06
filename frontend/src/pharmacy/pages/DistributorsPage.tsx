@@ -1,7 +1,7 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import useAuth from '../../context/useAuth';
+import useAuth from '../../shared/context/useAuth';
 
 interface Supplier {
   _id: string;

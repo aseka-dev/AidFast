@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { useNavigate, useLocation, Link } from 'react-router-dom';
-import { useAuth } from '../../context/useAuth';
-import { MailIcon, LockIcon, EyeIcon, EyeOffIcon } from '../../components/icons/Icons';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../../shared/context/useAuth';
+import { MailIcon, LockIcon, EyeIcon, EyeOffIcon } from '../../shared/components/Icons';
 
 export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
@@ -58,17 +58,6 @@ export const LoginPage: React.FC = () => {
 
       {/* Right Column: Sign In Form Card */}
       <div className="w-full lg:w-1/2 flex flex-col justify-center items-center p-4 sm:p-8 lg:p-12">
-
-        {/* Back Link */}
-        <div className="w-full max-w-md mb-4 flex justify-between items-center text-xs">
-          <Link
-            to="/"
-            className="text-emerald-800 hover:text-emerald-950 font-medium inline-flex items-center gap-1.5 transition"
-          >
-            Back to Community Portal
-          </Link>
-          <span className="text-gray-400"></span>
-        </div>
 
         {/* Card */}
         <div className="w-full max-w-md bg-white rounded-3xl p-8 sm:p-10 shadow-lg border border-gray-100/80">

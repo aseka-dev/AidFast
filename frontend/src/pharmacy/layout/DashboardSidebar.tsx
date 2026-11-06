@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import AidFastLogo from '../common/AidFastLogo';
+import AidFastLogo from '../../shared/components/AidFastLogo';
 import {
   DashboardIcon,
   MedicinesIcon,
@@ -13,7 +13,7 @@ import {
   ReportsIcon,
   SettingsIcon,
   CloseIcon
-} from '../icons/Icons';
+} from '../../shared/components/Icons';
 
 interface DashboardSidebarProps {
   onCloseMobile?: () => void;
@@ -146,7 +146,7 @@ export const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
           {/* Sign out button */}
           <button
             type="button"
-            onClick={onSignOut || (() => window.location.href = '/')}
+            onClick={onSignOut || (() => window.location.href = '/login')}
             className="shrink-0 px-2.5 py-1 text-xs font-medium text-red-400 border border-red-500/40 rounded-lg hover:bg-red-500/15 hover:text-red-300 hover:border-red-500/60 transition"
           >
             Sign out
