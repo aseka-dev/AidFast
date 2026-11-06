@@ -1,5 +1,5 @@
 import React from 'react';
-import { MenuIcon, BellIcon, SearchIcon } from '../icons/Icons';
+import { MenuIcon, BellIcon, SearchIcon } from '../../shared/components/Icons';
 
 interface DashboardHeaderProps {
   onOpenMobileMenu: () => void;

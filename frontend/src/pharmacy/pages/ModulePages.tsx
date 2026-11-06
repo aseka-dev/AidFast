@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 
 const BlankModule: React.FC = () => <div className="p-6" />;
 
-export const MedicinesPage: React.FC = BlankModule;
+export { default as MedicinesPage } from './MedicinesPage';
 export const InventoryPage: React.FC = BlankModule;
 
 export const PurchasingPage: React.FC = () => (

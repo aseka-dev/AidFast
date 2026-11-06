@@ -1,4 +1,3 @@
-
 import React from 'react';
 import {
   BrowserRouter,
@@ -7,45 +6,40 @@ import {
   Navigate
 } from 'react-router-dom';
 
-import { AuthProvider } from './context/AuthContext';
-import ProtectedRoute from './components/auth/ProtectedRoute';
+// Shared Auth Provider
+import { AuthProvider } from './shared';
 
-import PublicLayout from './components/layout/PublicLayout';
-import DashboardLayout from './components/layout/DashboardLayout';
-
-import LoginPage from './pages/auth/LoginPage';
-
-
-
-// Public Pages
-import PublicHome from './pages/public/PublicHome';
-import FindMedicine from './pages/public/FindMedicine';
-import Pharmacies from './pages/public/Pharmacies';
-import ViewPharmacy from './pages/public/ViewPharmacy';
-import RequestMedicine from './pages/public/RequestMedicine';
-
-// Dashboard pages
-import DashboardOverview from './pages/dashboard/DashboardOverview';
-import SettingsPage from './pages/dashboard/SettingsPage';
-
-// Purchasing pages
-import DistributorsPage from './pages/dashboard/DistributorsPage';
-import NewGrnPage from './pages/dashboard/NewGrnPage';
-import GrnRegisterPage from './pages/dashboard/GrnRegisterPage';
-import GrnVerificationPage from './pages/dashboard/GrnVerificationPage';
-import GrnDetailsPage from './pages/dashboard/GrnDetailsPage';
-
-import SalesPage from './pages/dashboard/SalesPage';
-
+// Community Portal Domain (Public / Patient Facing - M6)
 import {
+  PublicLayout,
+  PublicHome,
+  FindMedicine,
+  Pharmacies,
+  ViewPharmacy,
+  RequestMedicine
+} from './community';
+
+// Pharmacy Management Portal Domain (B2B Staff & Admin - M1-M5)
+import {
+  LoginPage,
+  ProtectedRoute,
+  DashboardLayout,
+  DashboardOverview,
+  SettingsPage,
+  DistributorsPage,
+  NewGrnPage,
+  GrnRegisterPage,
+  GrnVerificationPage,
+  GrnDetailsPage,
   MedicinesPage,
+  SalesPage,
   InventoryPage,
   TransactionsPage,
   AlertsPage,
   CommunityDemandPage,
   SafetyNoticesPage,
   ReportsPage
-} from './pages/dashboard/ModulePages';
+} from './pharmacy';
 
 export const App: React.FC = () => {
   return (
@@ -53,7 +47,9 @@ export const App: React.FC = () => {
       <BrowserRouter>
         <Routes>
 
-          {/* Public Community Portal */}
+          {/* ========================================================
+              COMMUNITY PORTAL (Public & Free - No Login Required)
+              ======================================================== */}
           <Route element={<PublicLayout />}>
             <Route path="/" element={<PublicHome />} />
             <Route path="/find-medicines" element={<FindMedicine />} />
@@ -68,59 +64,47 @@ export const App: React.FC = () => {
             <Route path="/contact" element={<PublicHome />} />
           </Route>
 
-          {/* Staff Login */}
+          {/* ========================================================
+              PHARMACY PORTAL (Owners & Staff - Authentication Required)
+              ======================================================== */}
+          {/* Dedicated Staff Login */}
           <Route path="/login" element={<LoginPage />} />
 
-          {/* Protected Staff Dashboard */}
-          <Route path="/dashboard"element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
+          {/* Protected Management Workspace */}
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute>
+                <DashboardLayout />
+              </ProtectedRoute>
+            }
+          >
             <Route index element={<DashboardOverview />} />
 
-            {/* M2 */}
-            <Route path="medicines" element={<MedicinesPage />}/>
-            <Route path="inventory" element={<InventoryPage />}/>
+            {/* M2: Medicine Catalog & Inventory */}
+            <Route path="medicines" element={<MedicinesPage />} />
+            <Route path="inventory" element={<InventoryPage />} />
 
-            {/* M3 - Purchasing */}
-            <Route path="purchasing" element={<GrnRegisterPage />}/>
-            <Route path="purchasing/distributors" element={<DistributorsPage />}/>
-            <Route path="purchasing/verification" element={<GrnVerificationPage />}/>
+            {/* M3: Purchasing & GRN Workflow */}
+            <Route path="purchasing" element={<GrnRegisterPage />} />
+            <Route path="purchasing/distributors" element={<DistributorsPage />} />
+            <Route path="purchasing/verification" element={<GrnVerificationPage />} />
             <Route path="purchasing/new-grn" element={<NewGrnPage />} />
-            <Route path="purchasing/grns/:grnId"element={<GrnDetailsPage />}/>
-            <Route path="purchasing/grns/:grnId/edit" element={<NewGrnPage />}/>
+            <Route path="purchasing/grns/:grnId" element={<GrnDetailsPage />} />
+            <Route path="purchasing/grns/:grnId/edit" element={<NewGrnPage />} />
 
-            {/* M4 */}
-            <Route
-              path="transactions"
-              element={<TransactionsPage />}
-            />
+            {/* M4: Sales & Transactions */}
+            <Route path="transactions" element={<TransactionsPage />} />
+            <Route path="sales" element={<SalesPage />} />
 
-            {/* M5 / M6 */}
-            <Route
-              path="sales"
-              element={<SalesPage />}
-            />
+            {/* M5 / M6: Alerts, Community Demand, Notices & Reports */}
+            <Route path="alerts" element={<AlertsPage />} />
+            <Route path="community-demand" element={<CommunityDemandPage />} />
+            <Route path="safety-notices" element={<SafetyNoticesPage />} />
+            <Route path="reports" element={<ReportsPage />} />
 
-            <Route
-              path="alerts"
-              element={<AlertsPage />}
-            />
-            <Route
-              path="community-demand"
-              element={<CommunityDemandPage />}
-            />
-            <Route
-              path="safety-notices"
-              element={<SafetyNoticesPage />}
-            />
-            <Route
-              path="reports"
-              element={<ReportsPage />}
-            />
-
-            {/* M1 */}
-            <Route
-              path="settings"
-              element={<SettingsPage />}
-            />
+            {/* M1: Settings & User Management */}
+            <Route path="settings" element={<SettingsPage />} />
           </Route>
 
           {/* Fallback */}

@@ -1,11 +1,16 @@
 
-import React, { useEffect, useState } from 'react';
+import React, {
+  useEffect,
+  useState
+} from 'react';
+
 import {
   Link,
   useParams,
   useSearchParams
 } from 'react-router-dom';
-import useAuth from '../../context/useAuth';
+
+import useAuth from '../../shared/context/useAuth';
 
 interface GrnItem {
   _id?: string;
@@ -46,7 +51,10 @@ interface Grn {
 
 type AuthSelection = {
   selectedPharmacyId?: string;
-  selectedPharmacy?: { _id?: string; id?: string };
+  selectedPharmacy?: {
+    _id?: string;
+    id?: string;
+  };
 };
 
 const API_BASE = (
@@ -60,11 +68,14 @@ const money = (value: number) =>
   })}`;
 
 const date = (value?: string) =>
-  value ? new Date(value).toLocaleDateString('en-GB') : '—';
+  value
+    ? new Date(value).toLocaleDateString('en-GB')
+    : '—';
 
 const GrnDetailsPage: React.FC = () => {
   const { grnId } = useParams<{ grnId: string }>();
   const [params] = useSearchParams();
+
   const auth = useAuth() as AuthSelection;
 
   const pharmacyId =
@@ -79,9 +90,14 @@ const GrnDetailsPage: React.FC = () => {
   const [processing, setProcessing] = useState(false);
 
   const endpoint = pharmacyId && grnId
-    ? `${API_BASE}/api/v1/pharmacies/${encodeURIComponent(pharmacyId)}/grns/${encodeURIComponent(grnId)}`
+    ? `${API_BASE}/api/v1/pharmacies/${encodeURIComponent(
+        pharmacyId
+      )}/grns/${encodeURIComponent(grnId)}`
     : '';
 
+  const printRequested = params.get('print') === '1';
+
+  // Reload GRN details after a verification action.
   const load = async () => {
     if (!endpoint) {
       setError('Pharmacy or GRN is not selected.');
@@ -98,7 +114,9 @@ const GrnDetailsPage: React.FC = () => {
       });
 
       if (!response.ok) {
-        throw new Error(`Unable to load GRN (${response.status}).`);
+        throw new Error(
+          `Unable to load GRN (${response.status}).`
+        );
       }
 
       const result = await response.json();
@@ -111,30 +129,97 @@ const GrnDetailsPage: React.FC = () => {
       setGrn(record);
       setComment(record.verificationComment || '');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Loading failed.');
+      setError(
+        err instanceof Error
+          ? err.message
+          : 'Loading failed.'
+      );
     } finally {
       setLoading(false);
     }
   };
 
+  // Initial GRN loading.
   useEffect(() => {
-    void load();
+    if (!endpoint) {
+      return;
+    }
+
+    const controller = new AbortController();
+
+    const fetchGrn = async () => {
+      try {
+        const response = await fetch(endpoint, {
+          credentials: 'include',
+          signal: controller.signal
+        });
+
+        if (!response.ok) {
+          throw new Error(
+            `Unable to load GRN (${response.status}).`
+          );
+        }
+
+        const result = await response.json();
+        const record = result.data?.grn || result.data || result;
+
+        if (!record?._id) {
+          throw new Error('Unexpected GRN response format.');
+        }
+
+        if (controller.signal.aborted) {
+          return;
+        }
+
+        setGrn(record);
+        setComment(record.verificationComment || '');
+        setError('');
+      } catch (err) {
+        if (controller.signal.aborted) {
+          return;
+        }
+
+        setError(
+          err instanceof Error
+            ? err.message
+            : 'Loading failed.'
+        );
+      } finally {
+        if (!controller.signal.aborted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    void fetchGrn();
+
+    return () => {
+      controller.abort();
+    };
   }, [endpoint]);
 
+  // Print after GRN data is available.
   useEffect(() => {
-    if (grn && params.get('print') === '1') {
-      // Print only after the GRN has loaded.
+    if (grn && printRequested && !loading) {
       window.print();
     }
-  }, [grn, params]);
+  }, [grn, printRequested, loading]);
 
+  // Confirm GRN or request changes.
   const performAction = async (
     action: 'confirm' | 'request-changes'
   ) => {
-    if (!endpoint || !grn) return;
+    if (!endpoint || !grn) {
+      return;
+    }
 
-    if (action === 'request-changes' && !comment.trim()) {
-      setError('Enter verification remarks before requesting changes.');
+    if (
+      action === 'request-changes' &&
+      !comment.trim()
+    ) {
+      setError(
+        'Enter verification remarks before requesting changes.'
+      );
       return;
     }
 
@@ -142,14 +227,19 @@ const GrnDetailsPage: React.FC = () => {
     setError('');
 
     try {
-      const response = await fetch(`${endpoint}/${action}`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          verificationComment: comment
-        })
-      });
+      const response = await fetch(
+        `${endpoint}/${action}`,
+        {
+          method: 'POST',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            verificationComment: comment
+          })
+        }
+      );
 
       if (!response.ok) {
         throw new Error(
@@ -161,14 +251,30 @@ const GrnDetailsPage: React.FC = () => {
 
       await load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Action failed.');
+      setError(
+        err instanceof Error
+          ? err.message
+          : 'Action failed.'
+      );
     } finally {
       setProcessing(false);
     }
   };
 
+  if (!endpoint) {
+    return (
+      <div className="p-6 text-red-700">
+        Pharmacy or GRN is not selected.
+      </div>
+    );
+  }
+
   if (loading) {
-    return <div className="p-6">Loading GRN details...</div>;
+    return (
+      <div className="p-6">
+        Loading GRN details...
+      </div>
+    );
   }
 
   if (!grn) {
@@ -179,55 +285,70 @@ const GrnDetailsPage: React.FC = () => {
     );
   }
 
-  const supplierName = typeof grn.supplierId === 'object'
-    ? grn.supplierId.supplierName
-    : '—';
+  const supplierName =
+    typeof grn.supplierId === 'object'
+      ? grn.supplierId.supplierName
+      : '—';
 
   const acceptedValue = (grn.items || []).reduce(
     (sum, item) =>
-      sum + item.acceptedQuantity * Number(item.wholesalePrice || 0),
+      sum +
+      item.acceptedQuantity *
+        Number(item.wholesalePrice || 0),
     0
   );
 
   return (
     <div className="space-y-5 p-6 pb-20">
       <Link
-        to={grn.status === 'CONFIRMED'
-          ? '/dashboard/purchasing'
-          : '/dashboard/purchasing/verification'}
+        to={
+          grn.status === 'CONFIRMED'
+            ? '/dashboard/purchasing'
+            : '/dashboard/purchasing/verification'
+        }
         className="text-sm font-semibold text-emerald-700"
       >
-        ← Back to {grn.status === 'CONFIRMED'
+        ← Back to{' '}
+        {grn.status === 'CONFIRMED'
           ? 'GRN Register'
           : 'GRN Verification'}
       </Link>
 
+      {/* GRN Header */}
       <section className="rounded-xl border bg-white p-5">
         <div className="flex flex-wrap items-center gap-3">
           <h1 className="text-2xl font-bold text-emerald-950">
             {grn.grnNumber}
           </h1>
+
           <span className="rounded-full bg-gray-100 px-3 py-1 text-xs">
             {grn.status.replaceAll('_', ' ')}
           </span>
         </div>
+
         <p className="mt-2 text-sm text-gray-500">
           Received {date(grn.receivedDate)} · Goods receipt details
         </p>
       </section>
 
+      {/* Inventory Status */}
       {grn.status !== 'CONFIRMED' && (
         <div className="rounded-lg border border-sky-100 bg-sky-50 p-4 text-sm text-sky-800">
           This GRN has not updated inventory.
         </div>
       )}
 
+      {/* Error Message */}
       {error && (
-        <div role="alert" className="rounded-lg bg-red-50 p-4 text-sm text-red-700">
+        <div
+          role="alert"
+          className="rounded-lg bg-red-50 p-4 text-sm text-red-700"
+        >
           {error}
         </div>
       )}
 
+      {/* GRN Information */}
       <section className="rounded-xl border bg-white p-5">
         <h2 className="mb-5 border-b pb-3 font-semibold text-emerald-950">
           Goods Receipt Information
@@ -238,15 +359,29 @@ const GrnDetailsPage: React.FC = () => {
             ['GRN Number', grn.grnNumber],
             ['Received Date', date(grn.receivedDate)],
             ['Distributor', supplierName],
-            ['Distributor Invoice Number', grn.invoiceNumber],
+            [
+              'Distributor Invoice Number',
+              grn.invoiceNumber
+            ],
             ['Invoice Date', date(grn.invoiceDate)],
-            ['Purchase Order Reference', grn.purchaseOrderId || '—'],
+            [
+              'Purchase Order Reference',
+              grn.purchaseOrderId || '—'
+            ],
             ['Prepared Date', date(grn.createdAt)],
-            ['Verification Date', date(grn.verifiedAt)],
-            ['Verification Remarks', grn.verificationComment || '—']
+            [
+              'Verification Date',
+              date(grn.verifiedAt)
+            ],
+            [
+              'Verification Remarks',
+              grn.verificationComment || '—'
+            ]
           ] as const).map(([label, value]) => (
             <div key={label}>
-              <p className="text-xs text-gray-500">{label}</p>
+              <p className="text-xs text-gray-500">
+                {label}
+              </p>
               <p className="mt-1 font-medium text-emerald-950">
                 {value}
               </p>
@@ -255,13 +390,16 @@ const GrnDetailsPage: React.FC = () => {
         </div>
       </section>
 
+      {/* Medicine Items */}
       <section className="overflow-hidden rounded-xl border bg-white">
         <div className="p-5">
           <h2 className="font-semibold text-emerald-950">
             Received Medicine Items
           </h2>
+
           <p className="text-xs text-gray-500">
-            Only accepted quantities from a confirmed GRN update inventory.
+            Only accepted quantities from a confirmed GRN
+            update inventory.
           </p>
         </div>
 
@@ -270,22 +408,34 @@ const GrnDetailsPage: React.FC = () => {
             <thead className="bg-gray-50 text-xs uppercase text-gray-500">
               <tr>
                 {[
-                  'Medicine', 'Batch Number', 'Expiry Date',
-                  'Received', 'Accepted', 'Rejected',
-                  'Wholesale Price', 'Line Amount'
+                  'Medicine',
+                  'Batch Number',
+                  'Expiry Date',
+                  'Received',
+                  'Accepted',
+                  'Rejected',
+                  'Wholesale Price',
+                  'Line Amount'
                 ].map((heading) => (
-                  <th key={heading} className="p-3">{heading}</th>
+                  <th key={heading} className="p-3">
+                    {heading}
+                  </th>
                 ))}
               </tr>
             </thead>
+
             <tbody>
               {(grn.items || []).map((item, index) => {
-                const medicine = typeof item.medicineId === 'object'
-                  ? item.medicineId
-                  : null;
+                const medicine =
+                  typeof item.medicineId === 'object'
+                    ? item.medicineId
+                    : null;
 
                 return (
-                  <tr key={item._id || index} className="border-t">
+                  <tr
+                    key={item._id || index}
+                    className="border-t"
+                  >
                     <td className="p-3">
                       {medicine?.medicineName ||
                         medicine?.genericName ||
@@ -293,18 +443,43 @@ const GrnDetailsPage: React.FC = () => {
                           ? item.medicineId
                           : '—')}
                     </td>
-                    <td className="p-3">{item.batchNumber || '—'}</td>
-                    <td className="p-3">{date(item.expiryDate)}</td>
-                    <td className="p-3">{item.receivedQuantity}</td>
-                    <td className="p-3">{item.acceptedQuantity}</td>
-                    <td className="p-3">{item.rejectedQuantity}</td>
+
                     <td className="p-3">
-                      {money(Number(item.wholesalePrice || 0))}
+                      {item.batchNumber || '—'}
                     </td>
+
                     <td className="p-3">
-                      {money(Number(item.lineTotal ??
-                        item.acceptedQuantity *
-                        Number(item.wholesalePrice || 0)))}
+                      {date(item.expiryDate)}
+                    </td>
+
+                    <td className="p-3">
+                      {item.receivedQuantity}
+                    </td>
+
+                    <td className="p-3">
+                      {item.acceptedQuantity}
+                    </td>
+
+                    <td className="p-3">
+                      {item.rejectedQuantity}
+                    </td>
+
+                    <td className="p-3">
+                      {money(
+                        Number(item.wholesalePrice || 0)
+                      )}
+                    </td>
+
+                    <td className="p-3">
+                      {money(
+                        Number(
+                          item.lineTotal ??
+                            item.acceptedQuantity *
+                              Number(
+                                item.wholesalePrice || 0
+                              )
+                        )
+                      )}
                     </td>
                   </tr>
                 );
@@ -320,23 +495,34 @@ const GrnDetailsPage: React.FC = () => {
         </div>
       </section>
 
+      {/* Financial Summary */}
       <div className="grid gap-4 rounded-xl border bg-white p-5 md:grid-cols-2">
         <div>
-          <p className="text-xs text-gray-500">Total Invoice Amount</p>
+          <p className="text-xs text-gray-500">
+            Total Invoice Amount
+          </p>
+
           <p className="font-bold text-emerald-700">
             {grn.totalAmount == null
               ? '—'
               : money(Number(grn.totalAmount))}
           </p>
         </div>
+
         <div>
-          <p className="text-xs text-gray-500">Accepted Stock Value</p>
+          <p className="text-xs text-gray-500">
+            Accepted Stock Value
+          </p>
+
           <p className="font-bold text-emerald-700">
-            {grn.items ? money(acceptedValue) : '—'}
+            {grn.items
+              ? money(acceptedValue)
+              : '—'}
           </p>
         </div>
       </div>
 
+      {/* Independent Verification */}
       {grn.status === 'PENDING_VERIFICATION' && (
         <section className="space-y-4 rounded-xl border bg-white p-5">
           <h2 className="font-semibold text-emerald-950">
@@ -345,9 +531,12 @@ const GrnDetailsPage: React.FC = () => {
 
           <label className="block space-y-2 text-sm">
             <span>Verification Remarks</span>
+
             <textarea
               value={comment}
-              onChange={(e) => setComment(e.target.value)}
+              onChange={(e) =>
+                setComment(e.target.value)
+              }
               rows={3}
               className="w-full rounded-lg border p-3"
             />
@@ -355,34 +544,46 @@ const GrnDetailsPage: React.FC = () => {
 
           <div className="flex flex-wrap gap-3">
             <button
+              type="button"
               disabled={processing}
-              onClick={() => void performAction('request-changes')}
+              onClick={() =>
+                void performAction('request-changes')
+              }
               className="rounded-lg border px-5 py-3 text-sm font-semibold text-amber-700 disabled:opacity-50"
             >
               Request Changes
             </button>
+
             <button
+              type="button"
               disabled={processing}
-              onClick={() => void performAction('confirm')}
+              onClick={() =>
+                void performAction('confirm')
+              }
               className="rounded-lg bg-emerald-700 px-5 py-3 text-sm font-semibold text-white disabled:opacity-50"
             >
               Confirm GRN
             </button>
           </div>
+
           <p className="text-xs text-gray-500">
-            The backend must verify the user's role and prevent
-            the creator from independently confirming their own GRN.
+            The backend must verify the user's role and
+            prevent the creator from independently confirming
+            their own GRN.
           </p>
         </section>
       )}
 
+      {/* Bottom Actions */}
       <div className="flex justify-end gap-3 print:hidden">
         <button
+          type="button"
           onClick={() => window.print()}
           className="rounded-lg border px-5 py-3 text-sm"
         >
           Print GRN
         </button>
+
         <Link
           to="/dashboard/purchasing/verification"
           className="rounded-lg bg-emerald-700 px-5 py-3 text-sm text-white"

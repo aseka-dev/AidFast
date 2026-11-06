@@ -26,6 +26,4 @@ batchSchema.index({ pharmacyId: 1, medicineId: 1, expiryDate: 1 });
 batchSchema.index({ pharmacyId: 1, medicineId: 1, receivedDate: 1 });
 batchSchema.index({ pharmacyId: 1, batchNumber: 1 }); // NOT unique
 
-// Validate related GRNItem, supplier, pharmacy and medicine references in service layer.
-// Never edit currentQuantity directly from controllers: only M2 stockPosting does so.
 export default mongoose.model('Batch', batchSchema);

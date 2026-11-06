@@ -1,6 +1,3 @@
-// D3 CONTRACT ONLY: implementation belongs to M2 in later sprint days.
-// Use a MongoDB transaction and immutable StockMovement record for actual posting.
-
 export type MovementType =
   | 'GRN_RECEIPT'
   | 'SALE'
@@ -12,14 +9,14 @@ export type MovementType =
   | 'REVERSAL';
 
 export interface StockPostingCommand {
-  pharmacyId: string;        // authorized tenant determined/verified server-side
+  pharmacyId: string;        
   medicineId: string;
   batchId: string;
-  quantityDelta: number;     // signed integer; quantity in base dispensing unit
+  quantityDelta: number;     
   movementType: MovementType;
-  referenceType: string;     // 'GRNItem' | 'SaleItemAllocation' | 'ReturnItem' etc.
+  referenceType: string;     
   referenceId: string;
-  idempotencyKey: string;    // stable key for logical operation, NOT per HTTP retry
+  idempotencyKey: string;    
   performedById: string;
   reason?: string;
 }
@@ -29,14 +26,10 @@ export interface StockPostingResult {
   batchId: string;
   quantityBefore: number;
   quantityAfter: number;
-  applied: boolean;         // false if an identical idempotent request was already posted
+  applied: boolean;         
   batchStatus: 'ACTIVE' | 'BLOCKED' | 'QUARANTINED' | 'EXPIRED' | 'DEPLETED';
 }
 
 export interface IStockPostingService {
   post(command: StockPostingCommand): Promise<StockPostingResult>;
 }
-
-// Validation contract: reject cross-pharmacy references, noninteger or zero deltas,
-// negative resulting balance, expired/blocked/quarantined sale, unconfirmed GRN,
-// conflicting idempotency key reuse; apply once and update availability snapshots.
