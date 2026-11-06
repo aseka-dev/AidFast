@@ -1,9 +1,6 @@
 
 import React, { useState } from "react";
-
-// TODO: The FIFO allocation preview component is not yet implemented in this project.
-// Prevent build breakage by rendering nothing until the component is available.
-const FIFOAllocationPreview: React.FC<{ medicine: string; quantity: number }> = () => null;
+import FIFOAllocationPreview from "../components/sales/FIFOAllocationPreview";
 
 type SaleItem = {
   id: number;

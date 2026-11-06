@@ -1,5 +1,4 @@
 
-
 import { mockBatches, type MockBatch } from "./mockData";
 
 type Props = {
