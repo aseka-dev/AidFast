@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
+import mongoose from 'mongoose';
 
 import User from '../models/User';
 import Pharmacy from '../models/Pharmacy';
@@ -120,8 +121,23 @@ export const selectPharmacy = async (
             return;
         }
 
+        if (!mongoose.isValidObjectId(pharmacyId)) {
+            res.status(400).json({
+                message: 'Invalid pharmacy ID format. Must be a 24-character hex string.'
+            });
+            return;
+        }
+
+        const userId = req.user?.userId;
+        if (!userId) {
+            res.status(401).json({
+                message: 'Authentication context missing'
+            });
+            return;
+        }
+
         const membership = await PharmacyUser.findOne({
-            userId: req.user?.userId,
+            userId,
             pharmacyId,
             isActive: true
         }).populate('roleId');
@@ -146,38 +162,49 @@ export const selectPharmacy = async (
         }
 
         const role = membership.roleId as any;
+        if (!role || !role.name) {
+            res.status(500).json({
+                message: 'User role configuration not found for this pharmacy'
+            });
+            return;
+        }
 
         const token = generateToken({
-            userId: req.user!.userId,
-            pharmacyId: pharmacy.id
+            userId: String(userId),
+            pharmacyId: String(pharmacy._id)
         });
 
-        await auditLogger({
-            userId: req.user!.userId,
-            pharmacyId: pharmacy.id,
-            action: 'PHARMACY_SELECTED',
-            entity: 'Pharmacy',
-            entityId: pharmacy.id,
-            description: `Selected pharmacy: ${pharmacy.name}`,
-            ipAddress: req.ip
-        });
+        try {
+            await auditLogger({
+                userId: String(userId),
+                pharmacyId: String(pharmacy._id),
+                action: 'PHARMACY_SELECTED',
+                entity: 'Pharmacy',
+                entityId: String(pharmacy._id),
+                description: `Selected pharmacy: ${pharmacy.name}`,
+                ipAddress: req.ip
+            });
+        } catch (auditError) {
+            console.warn('Audit logger warning (non-fatal):', auditError);
+        }
 
         res.status(200).json({
             message: 'Pharmacy selected successfully',
             token,
             pharmacy: {
-                id: pharmacy.id,
+                id: String(pharmacy._id),
                 name: pharmacy.name
             },
             role: role.name,
-            permissions: role.permissions
+            permissions: role.permissions || []
         });
 
-    } catch (error) {
+    } catch (error: any) {
         console.error('Pharmacy selection error:', error);
 
         res.status(500).json({
-            message: 'Unable to select pharmacy'
+            message: 'Unable to select pharmacy',
+            error: error?.message
         });
     }
 };

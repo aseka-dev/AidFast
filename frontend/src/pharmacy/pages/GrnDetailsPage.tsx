@@ -10,7 +10,7 @@ import {
   useSearchParams
 } from 'react-router-dom';
 
-import useAuth from '../../context/useAuth';
+import useAuth from '../../shared/context/useAuth';
 
 interface GrnItem {
   _id?: string;
