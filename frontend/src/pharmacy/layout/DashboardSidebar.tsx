@@ -41,6 +41,7 @@ export const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
     { title: 'Inventory', path: '/dashboard/inventory', icon: InventoryIcon, owner: 'M2' },
     { title: 'Purchasing', path: '/dashboard/purchasing', icon: PurchasingIcon, owner: 'M3' },
     { title: 'Transactions', path: '/dashboard/transactions', icon: TransactionsIcon, owner: 'M4' },
+    { title: "Returns",  path: "/dashboard/returns",  icon: TransactionsIcon,  owner: "M4",},
     { title: 'Sales', path: '/dashboard/sales', icon: TransactionsIcon, owner: 'M4' },
     { title: 'Expiry & Stock Alerts', path: '/dashboard/alerts', icon: AlertsIcon, owner: 'M5' },
     { title: 'Community Demand', path: '/dashboard/community-demand', icon: CommunityDemandIcon, owner: 'M5/M6' },

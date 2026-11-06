@@ -30,12 +30,14 @@ import {
   SalesPage,
   InventoryPage,
   TransactionsPage,
+  ReturnsPage,
   AlertsPage,
   CommunityDemandPage,
   SafetyNoticesPage,
   ReportsPage,
 } from "./pharmacy";
 
+// Select portal based on Vercel environment variable
 const appMode = import.meta.env.VITE_APP_MODE || "community";
 
 export const App: React.FC = () => {
@@ -114,7 +116,7 @@ export const App: React.FC = () => {
             {/* M4: Sales & Transactions */}
             <Route path="transactions" element={<TransactionsPage />} />
             <Route path="sales" element={<SalesPage />} />
-
+            <Route path="returns" element={<ReturnsPage />} />
             {/* M5 / M6: Alerts, Community Demand, Notices & Reports */}
             <Route path="alerts" element={<AlertsPage />} />
             <Route path="community-demand" element={<CommunityDemandPage />} />
