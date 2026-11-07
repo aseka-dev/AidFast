@@ -8,16 +8,19 @@ export const LoginPage: React.FC = () => {
   const location = useLocation();
   const { login } = useAuth();
 
-  const [email, setEmail] = useState('admin@aidfast.lk');
-  const [password, setPassword] = useState('AidFast@123');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [keepSignedIn, setKeepSignedIn] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Where to redirect after login (default /dashboard)
-  const locationState = location.state as { from?: { pathname: string } } | null;
-  const from = locationState?.from?.pathname || '/dashboard';
+  const locationState = location.state as { from?: { pathname: string; search?: string; hash?: string } } | null;
+  const destination = locationState?.from;
+  const from = destination?.pathname.startsWith('/dashboard')
+    ? `${destination.pathname}${destination.search || ''}${destination.hash || ''}`
+    : '/dashboard';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

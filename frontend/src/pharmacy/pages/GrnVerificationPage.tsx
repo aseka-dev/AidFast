@@ -1,3 +1,4 @@
+import { API_BASE, authenticatedFetch } from '../../shared/api';
 
 import React, {
   useCallback,
@@ -27,17 +28,7 @@ interface Grn {
   totalAmount?: number;
 }
 
-type AuthSelection = {
-  selectedPharmacyId?: string;
-  selectedPharmacy?: {
-    _id?: string;
-    id?: string;
-  };
-};
 
-const API_BASE = (
-  import.meta.env.VITE_API_URL || ''
-).replace(/\/$/, '');
 
 const statuses = [
   'ALL',
@@ -60,12 +51,10 @@ const supplierName = (grn: Grn): string =>
 
 const GrnVerificationPage: React.FC = () => {
   const navigate = useNavigate();
-  const auth = useAuth() as AuthSelection;
+  const auth = useAuth();
 
   const pharmacyId =
-    auth.selectedPharmacyId ||
-    auth.selectedPharmacy?._id ||
-    auth.selectedPharmacy?.id;
+    auth.currentPharmacy?.pharmacyId;
 
   const [grns, setGrns] = useState<Grn[]>([]);
   const [search, setSearch] = useState('');
@@ -86,8 +75,8 @@ const GrnVerificationPage: React.FC = () => {
     setError('');
 
     try {
-      const response = await fetch(endpoint, {
-        credentials: 'include'
+      const response = await authenticatedFetch(endpoint, {
+        credentials: 'omit'
       });
 
       if (!response.ok) {
@@ -129,8 +118,8 @@ const GrnVerificationPage: React.FC = () => {
 
     const fetchInitialGrns = async () => {
       try {
-        const response = await fetch(endpoint, {
-          credentials: 'include',
+        const response = await authenticatedFetch(endpoint, {
+          credentials: 'omit',
           signal: controller.signal
         });
 
@@ -222,11 +211,11 @@ const GrnVerificationPage: React.FC = () => {
     setError('');
 
     try {
-      const response = await fetch(
+      const response = await authenticatedFetch(
         `${endpoint}/${encodeURIComponent(grn._id)}/submit`,
         {
           method: 'POST',
-          credentials: 'include',
+          credentials: 'omit',
           headers: {
             'Content-Type': 'application/json'
           }

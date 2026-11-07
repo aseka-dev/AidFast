@@ -1,3 +1,4 @@
+import { API_BASE, authenticatedFetch } from '../../shared/api';
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
@@ -17,17 +18,7 @@ interface Grn {
   items?: unknown[];
 }
 
-type AuthSelection = {
-  selectedPharmacyId?: string;
-  selectedPharmacy?: {
-    _id?: string;
-    id?: string;
-  };
-};
 
-const API_BASE = (
-  import.meta.env.VITE_API_URL || ''
-).replace(/\/$/, '');
 
 const getSupplierName = (grn: Grn): string =>
   typeof grn.supplierId === 'object'
@@ -35,12 +26,10 @@ const getSupplierName = (grn: Grn): string =>
     : '—';
 
 const GrnRegisterPage: React.FC = () => {
-  const auth = useAuth() as AuthSelection;
+  const auth = useAuth();
 
   const pharmacyId =
-    auth.selectedPharmacyId ||
-    auth.selectedPharmacy?._id ||
-    auth.selectedPharmacy?.id;
+    auth.currentPharmacy?.pharmacyId;
 
   const [grns, setGrns] = useState<Grn[]>([]);
   const [search, setSearch] = useState('');
@@ -61,8 +50,8 @@ const GrnRegisterPage: React.FC = () => {
 
     const fetchGrns = async () => {
       try {
-        const response = await fetch(endpoint, {
-          credentials: 'include',
+        const response = await authenticatedFetch(endpoint, {
+          credentials: 'omit',
           signal: controller.signal
         });
 

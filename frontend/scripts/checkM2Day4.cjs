@@ -3,7 +3,7 @@ const path = require('node:path');
 const assert = require('node:assert/strict');
 const Module = require('node:module');
 const ts = require('typescript');
-const src = path.resolve(__dirname, '../src/pages/dashboard/medicines/catalogLogic.ts');
+const src = path.resolve(__dirname, '../src/pharmacy/pages/medicines/catalogLogic.ts');
 const code = fs.readFileSync(src, 'utf8');
 const compiled = ts.transpileModule(code, {
   fileName: src, reportDiagnostics: true,

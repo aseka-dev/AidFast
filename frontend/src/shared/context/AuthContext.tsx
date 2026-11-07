@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import type { User, PharmacySummary, AuthState } from '../types/auth';
 import { AuthContext } from './AuthContextDefinition';
+import { apiUrl } from '../api';
 
 const STORAGE_KEYS = {
   TOKEN: 'aidfast_token',
@@ -16,6 +17,7 @@ const getInitialAuthState = (): AuthState => {
     const storedPharmacy = localStorage.getItem(STORAGE_KEYS.PHARMACY);
     const storedPharmacies = localStorage.getItem(STORAGE_KEYS.PHARMACIES);
 
+    if (storedToken === 'demo-jwt-token') throw new Error('Demo sessions are no longer supported');
     if (storedToken && storedUser) {
       return {
         token: storedToken,
@@ -28,7 +30,7 @@ const getInitialAuthState = (): AuthState => {
     }
   } catch (e) {
     console.error('Failed to parse stored auth session:', e);
-    localStorage.clear();
+    Object.values(STORAGE_KEYS).forEach((key) => localStorage.removeItem(key));
   }
 
   return {
@@ -49,7 +51,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const currentToken = state.token || localStorage.getItem(STORAGE_KEYS.TOKEN);
       if (!currentToken) return false;
 
-      const res = await fetch('/api/auth/select-pharmacy', {
+      const res = await fetch(apiUrl('/api/auth/select-pharmacy'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -85,8 +87,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
     try {
-      // 1. Try real backend API
-      const response = await fetch('/api/auth/login', {
+      // Authenticate against the shared backend.
+      const response = await fetch(apiUrl('/api/auth/login'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -101,31 +103,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         let activeToken = data.token;
         let selectedPharmacy: PharmacySummary | null = pharmacies.length > 0 ? pharmacies[0] : null;
 
-        // Auto-select primary pharmacy in background
+        // Require a pharmacy-scoped token before persisting the session.
         if (selectedPharmacy) {
-          try {
-            const selectRes = await fetch('/api/auth/select-pharmacy', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${activeToken}`
-              },
-              body: JSON.stringify({ pharmacyId: selectedPharmacy.pharmacyId })
-            });
-
-            if (selectRes.ok) {
-              const selectData = await selectRes.json();
-              activeToken = selectData.token;
-              selectedPharmacy = {
-                pharmacyId: selectData.pharmacy.id,
-                pharmacyName: selectData.pharmacy.name,
-                role: selectData.role,
-                permissions: selectData.permissions
-              };
-            }
-          } catch (e) {
-            console.warn('Auto-select fallback to first pharmacy:', e);
+          const selectRes = await fetch(apiUrl('/api/auth/select-pharmacy'), {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${activeToken}`
+            },
+            body: JSON.stringify({ pharmacyId: selectedPharmacy.pharmacyId })
+          });
+          if (!selectRes.ok) {
+            const error = await selectRes.json().catch(() => ({}));
+            return { success: false, error: error.message || `Unable to select pharmacy (HTTP ${selectRes.status}).` };
           }
+          const selectData = await selectRes.json();
+          activeToken = selectData.token;
+          selectedPharmacy = {
+            pharmacyId: selectData.pharmacy.id,
+            pharmacyName: selectData.pharmacy.name,
+            role: selectData.role,
+            permissions: selectData.permissions
+          };
+        } else {
+          return { success: false, error: 'No active pharmacy membership found.' };
         }
 
         // Persist session
@@ -148,46 +149,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return { success: true };
       } else {
         const errData = await response.json().catch(() => ({}));
-        return { success: false, error: errData.message || 'Invalid email or password' };
+        return { success: false, error: response.status === 401
+          ? 'Invalid email or password'
+          : errData.message || `Sign-in request failed (HTTP ${response.status}). Please try again.` };
       }
-    } catch (networkError) {
-      console.warn('Network error or backend unreachable. Checking demo credentials...', networkError);
-
-      // Graceful offline fallback for demo/testing if backend is offline
-      if (email.toLowerCase() === 'admin@aidfast.lk' && password === 'AidFast@123') {
-        const demoUser: User = {
-          id: 'demo-admin-id',
-          fullName: 'AidFast Administrator',
-          email: 'admin@aidfast.lk',
-          role: 'ADMIN'
-        };
-        const demoPharmacy: PharmacySummary = {
-          pharmacyId: 'demo-pharmacy-id',
-          pharmacyName: 'Greenway Community Pharmacy',
-          role: 'ADMIN',
-          permissions: ['*']
-        };
-
-        localStorage.setItem(STORAGE_KEYS.TOKEN, 'demo-jwt-token');
-        localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(demoUser));
-        localStorage.setItem(STORAGE_KEYS.PHARMACY, JSON.stringify(demoPharmacy));
-        localStorage.setItem(STORAGE_KEYS.PHARMACIES, JSON.stringify([demoPharmacy]));
-
-        setState({
-          user: demoUser,
-          token: 'demo-jwt-token',
-          currentPharmacy: demoPharmacy,
-          availablePharmacies: [demoPharmacy],
-          isAuthenticated: true,
-          isLoading: false
-        });
-
-        return { success: true };
-      }
-
+    } catch (error) {
       return {
         success: false,
-        error: 'Unable to connect to server. Please verify backend is running on port 5000.'
+        error: error instanceof TypeError
+          ? 'Unable to connect to the server. Please check your connection and try again.'
+          : 'The server returned an unexpected response. Please try again.'
       };
     }
   };
@@ -196,7 +167,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const currentToken = state.token;
       if (currentToken) {
-        fetch('/api/auth/logout', {
+        fetch(apiUrl('/api/auth/logout'), {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

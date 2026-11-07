@@ -1,3 +1,4 @@
+import { API_BASE, authenticatedFetch } from '../../shared/api';
 
 import React, {
   useEffect,
@@ -49,17 +50,7 @@ interface Grn {
   items?: GrnItem[];
 }
 
-type AuthSelection = {
-  selectedPharmacyId?: string;
-  selectedPharmacy?: {
-    _id?: string;
-    id?: string;
-  };
-};
 
-const API_BASE = (
-  import.meta.env.VITE_API_URL || ''
-).replace(/\/$/, '');
 
 const money = (value: number) =>
   `LKR ${value.toLocaleString('en-LK', {
@@ -76,12 +67,10 @@ const GrnDetailsPage: React.FC = () => {
   const { grnId } = useParams<{ grnId: string }>();
   const [params] = useSearchParams();
 
-  const auth = useAuth() as AuthSelection;
+  const auth = useAuth();
 
   const pharmacyId =
-    auth.selectedPharmacyId ||
-    auth.selectedPharmacy?._id ||
-    auth.selectedPharmacy?.id;
+    auth.currentPharmacy?.pharmacyId;
 
   const [grn, setGrn] = useState<Grn | null>(null);
   const [error, setError] = useState('');
@@ -109,8 +98,8 @@ const GrnDetailsPage: React.FC = () => {
     setError('');
 
     try {
-      const response = await fetch(endpoint, {
-        credentials: 'include'
+      const response = await authenticatedFetch(endpoint, {
+        credentials: 'omit'
       });
 
       if (!response.ok) {
@@ -149,8 +138,8 @@ const GrnDetailsPage: React.FC = () => {
 
     const fetchGrn = async () => {
       try {
-        const response = await fetch(endpoint, {
-          credentials: 'include',
+        const response = await authenticatedFetch(endpoint, {
+          credentials: 'omit',
           signal: controller.signal
         });
 
@@ -227,11 +216,11 @@ const GrnDetailsPage: React.FC = () => {
     setError('');
 
     try {
-      const response = await fetch(
+      const response = await authenticatedFetch(
         `${endpoint}/${action}`,
         {
           method: 'POST',
-          credentials: 'include',
+          credentials: 'omit',
           headers: {
             'Content-Type': 'application/json'
           },

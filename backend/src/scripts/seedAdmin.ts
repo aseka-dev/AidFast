@@ -18,6 +18,11 @@ dotenv.config({
 
 const seedAdmin = async (): Promise<void> => {
     try {
+        const adminEmail = process.env.SEED_ADMIN_EMAIL?.trim().toLowerCase();
+        const adminPassword = process.env.SEED_ADMIN_PASSWORD;
+        if (!adminEmail || !adminPassword) {
+            throw new Error('SEED_ADMIN_EMAIL and SEED_ADMIN_PASSWORD are required');
+        }
         console.log('Connecting to MongoDB...');
         await connectDB();
 
@@ -86,8 +91,6 @@ const seedAdmin = async (): Promise<void> => {
         // 3. Create or find the admin user
         console.log('Creating admin user...');
 
-        const adminEmail = 'admin@aidfast.lk';
-        const adminPassword = 'AidFast@123';
 
         let admin = await User.findOne({
             email: adminEmail
@@ -170,7 +173,7 @@ const seedAdmin = async (): Promise<void> => {
         console.log('Available Pharmacies:');
         seededPharmacies.forEach((p) => console.log(` - ${p.name}`));
         console.log('Admin Email:   ', adminEmail);
-        console.log('Admin Password:', adminPassword);
+
         console.log('================================');
 
     } catch (error) {
