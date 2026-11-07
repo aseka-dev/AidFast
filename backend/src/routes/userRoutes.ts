@@ -2,7 +2,8 @@ import { Router } from 'express';
 
 import {
     createUser,
-    getUsers
+    getUsers,
+    removeUser
 } from '../controllers/userController';
 
 import {
@@ -28,6 +29,14 @@ router.get(
     requireSelectedPharmacy,
     requirePermission('users:read'),
     getUsers
+);
+
+router.delete(
+    '/:membershipId',
+    authenticate,
+    requireSelectedPharmacy,
+    requirePermission('users:delete'),
+    removeUser
 );
 
 export default router;

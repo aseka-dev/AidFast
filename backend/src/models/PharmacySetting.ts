@@ -6,6 +6,8 @@ export interface IPharmacySetting extends Document {
     lowStockThreshold: number;
     publicAvailabilityEnabled: boolean;
     expiryAlertMonths: number[];
+    dateFormat: string;
+    currency: string;
 }
 
 const pharmacySettingSchema = new Schema<IPharmacySetting>(
@@ -32,6 +34,14 @@ const pharmacySettingSchema = new Schema<IPharmacySetting>(
         expiryAlertMonths: {
             type: [Number],
             default: [12, 9, 6]
+        },
+        dateFormat: {
+            type: String,
+            default: 'DD MMM YYYY'
+        },
+        currency: {
+            type: String,
+            default: 'LKR — Sri Lankan Rupee'
         }
     },
     {
