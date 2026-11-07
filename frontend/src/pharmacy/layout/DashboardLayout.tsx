@@ -67,6 +67,8 @@ export const DashboardLayout: React.FC = () => {
         <DashboardHeader
           onOpenMobileMenu={() => setMobileSidebarOpen(true)}
           userInitials={currentUser.initials}
+          userName={currentUser.name}
+          userRole={currentUser.role}
         />
 
         {/* Page Content Body */}

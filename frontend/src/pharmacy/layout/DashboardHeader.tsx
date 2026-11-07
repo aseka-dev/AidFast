@@ -1,14 +1,21 @@
 import React from 'react';
 import { MenuIcon, BellIcon, SearchIcon } from '../../shared/components/Icons';
+import PharmacySwitcher from '../components/PharmacySwitcher';
 
 interface DashboardHeaderProps {
   onOpenMobileMenu: () => void;
   userInitials?: string;
+  userName?: string;
+  userRole?: string;
+  onPharmacySwitched?: (pharmacyName: string) => void;
 }
 
 export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
   onOpenMobileMenu,
-  userInitials = 'SA'
+  userInitials = 'SA',
+  userName = 'Samira Ahmed',
+  userRole = 'Pharmacy Manager',
+  onPharmacySwitched
 }) => {
   return (
     <header className="bg-white border-b border-gray-200 h-16 px-4 sm:px-6 flex items-center justify-between sticky top-0 z-30 shadow-2xs">
@@ -37,8 +44,11 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
         </div>
       </div>
 
-      {/* Right: Notification Bell with Red Dot & Dark Green SA Avatar */}
-      <div className="flex items-center gap-4 pl-4">
+      {/* Right: Tenant Switcher + Notification Bell + User Avatar */}
+      <div className="flex items-center gap-3 sm:gap-4 pl-4">
+        {/* Active Pharmacy Switcher (Tenant Selector) */}
+        <PharmacySwitcher onSwitched={onPharmacySwitched} variant="header" />
+
         {/* Notification Bell */}
         <button
           type="button"
@@ -53,7 +63,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
         {/* User Avatar Circle */}
         <div
           className="w-8 h-8 rounded-full bg-[#0c4e36] text-white font-semibold text-xs flex items-center justify-center shrink-0 shadow-2xs select-none cursor-pointer"
-          title="Samira Ahmed (Pharmacy Manager)"
+          title={`${userName} (${userRole})`}
         >
           {userInitials}
         </div>

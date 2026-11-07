@@ -8,6 +8,7 @@ export { default as ProtectedRoute } from './auth/ProtectedRoute';
 export { default as DashboardHeader } from './layout/DashboardHeader';
 export { default as DashboardSidebar } from './layout/DashboardSidebar';
 export { default as DashboardLayout } from './layout/DashboardLayout';
+export { default as PharmacySwitcher } from './components/PharmacySwitcher';
 
 // Pages
 export { default as DashboardOverview } from './pages/DashboardOverview';

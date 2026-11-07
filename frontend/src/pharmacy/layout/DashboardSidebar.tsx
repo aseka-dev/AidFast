@@ -1,6 +1,7 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import AidFastLogo from '../../shared/components/AidFastLogo';
+import PharmacySwitcher from '../components/PharmacySwitcher';
 import {
   DashboardIcon,
   MedicinesIcon,
@@ -61,7 +62,7 @@ export const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
     <aside className="w-72 bg-[#094732] flex flex-col h-full min-h-screen text-white select-none border-r border-emerald-950/40">
       
       {/* Top Header Section */}
-      <div className="p-4 pt-5 pb-4 border-b border-emerald-800/30">
+      <div className="p-4 pt-5 pb-4 border-b border-emerald-800/30 space-y-3">
         <div className="flex items-center justify-between">
           <AidFastLogo
             variant="dark"
@@ -78,6 +79,8 @@ export const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
             </button>
           )}
         </div>
+        {/* Pharmacy Tenant Switcher */}
+        <PharmacySwitcher variant="sidebar" />
       </div>
 
       {/* Navigation Sections */}
