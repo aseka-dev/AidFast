@@ -83,8 +83,9 @@ export const ROLE_PERMISSIONS: Record<RoleName, { description: string; permissio
       PERMISSIONS.REQUESTS_RESPOND
     ]
   },
+ 
   STAFF: {
-    description: 'Dispensing and sales assistant for counter transactions and catalog lookup',
+    description: 'Dispensing and sales assistant for counter transactions, catalog lookup, alerts and safety notices',
     permissions: [
       PERMISSIONS.CATALOG_READ,
       PERMISSIONS.INVENTORY_READ,
@@ -92,9 +93,12 @@ export const ROLE_PERMISSIONS: Record<RoleName, { description: string; permissio
       PERMISSIONS.SALES_CREATE,
       PERMISSIONS.RETURNS_READ,
       PERMISSIONS.RETURNS_CREATE,
-      PERMISSIONS.REQUESTS_READ
+      PERMISSIONS.REQUESTS_READ,
+      PERMISSIONS.ALERTS_READ,
+      PERMISSIONS.SAFETY_READ
     ]
   },
+
   VERIFIER: {
     description: 'Specialized quality and GRN stock verification officer',
     permissions: [
