@@ -1,3 +1,4 @@
+import { API_BASE, authenticatedFetch } from '../../shared/api';
 
 import React, { useEffect, useState } from 'react';
 
@@ -46,17 +47,7 @@ interface ExistingGrn {
   items?: GrnItem[];
 }
 
-type AuthSelection = {
-  selectedPharmacyId?: string;
-  selectedPharmacy?: {
-    _id?: string;
-    id?: string;
-  };
-};
 
-const API_BASE = (
-  import.meta.env.VITE_API_URL || ''
-).replace(/\/$/, '');
 
 const emptyForm: GrnForm = {
   grnNumber: '',
@@ -86,12 +77,10 @@ const NewGrnPage: React.FC = () => {
     useParams<{ grnId: string }>();
 
   const isEditMode = Boolean(editGrnId);
-  const auth = useAuth() as AuthSelection;
+  const auth = useAuth();
 
   const pharmacyId =
-    auth.selectedPharmacyId ||
-    auth.selectedPharmacy?._id ||
-    auth.selectedPharmacy?.id;
+    auth.currentPharmacy?.pharmacyId;
 
   const root = pharmacyId
     ? `${API_BASE}/api/v1/pharmacies/${encodeURIComponent(pharmacyId)}`
@@ -127,22 +116,22 @@ const NewGrnPage: React.FC = () => {
     const loadData = async () => {
       try {
         const requests: Promise<Response>[] = [
-          fetch(`${root}/suppliers`, {
-            credentials: 'include',
+          authenticatedFetch(`${root}/suppliers`, {
+            credentials: 'omit',
             signal: controller.signal
           }),
-          fetch(`${root}/medicines`, {
-            credentials: 'include',
+          authenticatedFetch(`${root}/medicines`, {
+            credentials: 'omit',
             signal: controller.signal
           })
         ];
 
         if (editGrnId) {
           requests.push(
-            fetch(
+            authenticatedFetch(
               `${root}/grns/${encodeURIComponent(editGrnId)}`,
               {
-                credentials: 'include',
+                credentials: 'omit',
                 signal: controller.signal
               }
             )
@@ -393,9 +382,9 @@ const NewGrnPage: React.FC = () => {
         ? `${root}/grns/${encodeURIComponent(activeId)}`
         : `${root}/grns`;
 
-      const response = await fetch(url, {
+      const response = await authenticatedFetch(url, {
         method: activeId ? 'PUT' : 'POST',
-        credentials: 'include',
+        credentials: 'omit',
         headers: {
           'Content-Type': 'application/json'
         },
@@ -449,11 +438,11 @@ const NewGrnPage: React.FC = () => {
     setError('');
 
     try {
-      const response = await fetch(
+      const response = await authenticatedFetch(
         `${root}/grns/${encodeURIComponent(id)}/submit`,
         {
           method: 'POST',
-          credentials: 'include',
+          credentials: 'omit',
           headers: {
             'Content-Type': 'application/json'
           }

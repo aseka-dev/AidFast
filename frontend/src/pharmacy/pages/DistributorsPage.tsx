@@ -1,3 +1,4 @@
+import { API_BASE, authenticatedFetch } from '../../shared/api';
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
@@ -13,21 +14,12 @@ interface Supplier {
   grnCount?: number;
 }
 
-type AuthSelection = {
-  selectedPharmacyId?: string;
-  selectedPharmacy?: { _id?: string; id?: string };
-};
 
-const API_BASE = (
-  import.meta.env.VITE_API_URL || ''
-).replace(/\/$/, '');
 
 const DistributorsPage: React.FC = () => {
-  const auth = useAuth() as AuthSelection;
+  const auth = useAuth();
   const pharmacyId =
-    auth.selectedPharmacyId ||
-    auth.selectedPharmacy?._id ||
-    auth.selectedPharmacy?.id;
+    auth.currentPharmacy?.pharmacyId;
 
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [search, setSearch] = useState('');
@@ -57,8 +49,8 @@ const DistributorsPage: React.FC = () => {
     }
 
     try {
-      const response = await fetch(endpoint, {
-        credentials: 'include'
+      const response = await authenticatedFetch(endpoint, {
+        credentials: 'omit'
       });
 
       if (!response.ok) {
@@ -96,7 +88,7 @@ const DistributorsPage: React.FC = () => {
 
     let cancelled = false;
 
-    fetch(endpoint, { credentials: 'include' })
+    authenticatedFetch(endpoint, { credentials: 'omit' })
       .then((res) => {
         if (!res.ok) {
           throw new Error(
@@ -160,9 +152,9 @@ const DistributorsPage: React.FC = () => {
     setError('');
 
     try {
-      const response = await fetch(endpoint, {
+      const response = await authenticatedFetch(endpoint, {
         method: 'POST',
-        credentials: 'include',
+        credentials: 'omit',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form)
       });

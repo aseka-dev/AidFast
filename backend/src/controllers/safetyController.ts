@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { AuthRequest } from '../middleware/authMiddleware';
-import { batchSafetyService, SafetyAction } from '../services/batchSafety.contract';
+import { batchSafetyService, SafetyAction } from '../services/batchSafetyContract';
 
 const notImplemented = (res: Response, name: string, plannedDay: number) =>
     res.status(501).json({ message: `${name} is not implemented yet`, plannedDay });

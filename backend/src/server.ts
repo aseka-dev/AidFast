@@ -3,7 +3,6 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import path from 'path';
-import mongoose from 'mongoose';
 
 import connectDB from './config/db';
 
@@ -17,7 +16,7 @@ import grnRoutes from './routes/grnRoutes';
 
 import medicineRequestRoutes from './routes/medicineRequestRoutes';
 import publicMedicineRoutes from './routes/publicMedicineRoutes';
-import publicPharmacyRoutes from './routes/publicPharmacyRotues';
+import publicPharmacyRoutes from './routes/publicPharmacyRoutes';
 import alertRoutes from './routes/alertRoutes';
 import safetyRoutes from './routes/safetyRoutes';
 
@@ -29,8 +28,11 @@ dotenv.config({
 const app = express();
 
 // Middleware
+const allowedOrigins = (process.env.CORS_ORIGINS || 'http://localhost:5173,http://localhost:5174,http://localhost:8080')
+    .split(',').map((origin) => origin.trim()).filter(Boolean);
 app.use(cors({
-    origin: 'http://localhost:5173'
+    origin: allowedOrigins,
+    credentials: true
 }));
 
 app.use(express.json());

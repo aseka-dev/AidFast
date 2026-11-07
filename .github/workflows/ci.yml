@@ -37,9 +37,17 @@ jobs:
       - name: Build backend (TypeScript check)
         run: npm run build
 
+      - name: Run backend tests
+        run: npm test
+
   frontend-check:
     name: Frontend Lint & Build
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        app-mode: [community, pharmacy]
+    env:
+      VITE_APP_MODE: ${{ matrix.app-mode }}
     defaults:
       run:
         working-directory: frontend
@@ -60,6 +68,9 @@ jobs:
 
       - name: Run ESLint
         run: npm run lint
+
+      - name: Check medicine catalog
+        run: node scripts/checkM2Day4.cjs
 
       - name: Build frontend (Vite & TypeScript)
         run: npm run build
