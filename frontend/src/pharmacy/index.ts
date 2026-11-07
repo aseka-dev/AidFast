@@ -30,4 +30,6 @@ export {
   SafetyNoticesPage,
   ReportsPage
 } from './pages/ModulePages';
+// Expiry & Stock Alerts
+export { default as ExpiryStockAlerts } from './pages/ExpiryStockAlerts';
 

@@ -53,19 +53,20 @@ export const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
   const isAdmin = userRole === 'ADMIN' || permissions.includes('*');
 
   const allManagementNav: NavItem[] = [
-    { title: 'Medicines', path: '/dashboard/medicines', icon: MedicinesIcon, owner: 'M2', requiredPermissions: ['catalog:read'] },
-    { title: 'Inventory', path: '/dashboard/inventory', icon: InventoryIcon, owner: 'M2', requiredPermissions: ['inventory:read'] },
-    { title: 'Purchasing', path: '/dashboard/purchasing', icon: PurchasingIcon, owner: 'M3', requiredPermissions: ['grn:read', 'po:read', 'suppliers:read'] },
-    { title: 'Transactions', path: '/dashboard/transactions', icon: TransactionsIcon, owner: 'M4', requiredPermissions: ['sales:read'] },
-    { title: 'Returns', path: '/dashboard/returns', icon: TransactionsIcon, owner: 'M4', requiredPermissions: ['returns:read'] },
-    { title: 'Sales', path: '/dashboard/sales', icon: TransactionsIcon, owner: 'M4', requiredPermissions: ['sales:create', 'sales:read'] },
-    { title: 'Expiry & Stock Alerts', path: '/dashboard/alerts', icon: AlertsIcon, owner: 'M5', requiredPermissions: ['alerts:read'] },
-    { title: 'Community Demand', path: '/dashboard/community-demand', icon: CommunityDemandIcon, owner: 'M5/M6', requiredPermissions: ['requests:read'] },
-    { title: 'Safety Notices', path: '/dashboard/safety-notices', icon: SafetyNoticesIcon, owner: 'M5', requiredPermissions: ['safety:read'] },
-    { title: 'Reports', path: '/dashboard/reports', icon: ReportsIcon, owner: 'M5', requiredPermissions: ['reports:read'] },
-    { title: 'Settings', path: '/dashboard/settings', icon: SettingsIcon, owner: 'M1', requiredPermissions: ['pharmacy:settings', 'users:read'] }
-  ];
+  { title: 'Medicines', path: '/dashboard/medicines', icon: MedicinesIcon, owner: 'M2', requiredPermissions: ['catalog:read'] },
+  { title: 'Inventory', path: '/dashboard/inventory', icon: InventoryIcon, owner: 'M2', requiredPermissions: ['inventory:read'] },
+  { title: 'Purchasing', path: '/dashboard/purchasing', icon: PurchasingIcon, owner: 'M3', requiredPermissions: ['grn:read', 'po:read', 'suppliers:read'] },
+  { title: 'Transactions', path: '/dashboard/transactions', icon: TransactionsIcon, owner: 'M4', requiredPermissions: ['sales:read'] },
+  { title: 'Returns', path: '/dashboard/returns', icon: TransactionsIcon, owner: 'M4', requiredPermissions: ['returns:read'] },
+  { title: 'Sales', path: '/dashboard/sales', icon: TransactionsIcon, owner: 'M4', requiredPermissions: ['sales:create', 'sales:read'] },
 
+  { title: 'Alerts', path: '/dashboard/alerts', icon: AlertsIcon, owner: 'M5', requiredPermissions: ['alerts:read'] },
+  { title: 'Expiry & Stock Alerts', path: '/dashboard/expiry-stock-alerts', icon: AlertsIcon, owner: 'M5', requiredPermissions: ['alerts:read'] },
+
+  { title: 'Community Demand', path: '/dashboard/community-demand', icon: CommunityDemandIcon, owner: 'M5/M6', requiredPermissions: ['requests:read'] },
+{ title: 'Safety Notices', path: '/dashboard/safety-notices', icon: SafetyNoticesIcon, owner: 'M5', requiredPermissions: [] },  { title: 'Reports', path: '/dashboard/reports', icon: ReportsIcon, owner: 'M5', requiredPermissions: ['reports:read'] },
+  { title: 'Settings', path: '/dashboard/settings', icon: SettingsIcon, owner: 'M1', requiredPermissions: ['pharmacy:settings', 'users:read'] }
+];
   // Dynamic role-based filtering based on tenant permissions
   const visibleNav = allManagementNav.filter((item) => {
     if (isAdmin) return true;

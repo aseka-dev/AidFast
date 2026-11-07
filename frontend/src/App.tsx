@@ -15,6 +15,7 @@ import {
 } from "./community";
 
 // Pharmacy Management Portal Domain (B2B Staff & Admin - M1-M5)
+// Pharmacy Management Portal Domain (B2B Staff & Admin - M1-M5)
 import {
   LoginPage,
   ProtectedRoute,
@@ -32,6 +33,7 @@ import {
   TransactionsPage,
   ReturnsPage,
   AlertsPage,
+  ExpiryStockAlerts,
   CommunityDemandPage,
   SafetyNoticesPage,
   ReportsPage,
@@ -193,6 +195,14 @@ export const App: React.FC = () => {
                     </ProtectedRoute>
                   }
                 />
+                <Route
+  path="expiry-stock-alerts"
+  element={
+    <ProtectedRoute requiredPermission="alerts:read">
+      <ExpiryStockAlerts />
+    </ProtectedRoute>
+  }
+/>
                 <Route
                   path="community-demand"
                   element={
