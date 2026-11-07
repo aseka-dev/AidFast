@@ -37,8 +37,10 @@ import {
   ReportsPage,
 } from "./pharmacy";
 
-// Select portal based on Vercel environment variable
-const appMode = import.meta.env.VITE_APP_MODE || "community";
+// Support environment-based deployment (Vercel) while keeping both accessible in dev
+const appMode = import.meta.env.VITE_APP_MODE;
+const showCommunity = !appMode || appMode === "community" || appMode === "all";
+const showPharmacy = !appMode || appMode === "pharmacy" || appMode === "all";
 
 export const App: React.FC = () => {
   return (
@@ -48,8 +50,7 @@ export const App: React.FC = () => {
           {/* ========================================================
               COMMUNITY PORTAL (Public & Free - No Login Required)
               ======================================================== */}
-
-          {appMode === "community" && (
+          {showCommunity && (
             <Route element={<PublicLayout />}>
               <Route path="/" element={<PublicHome />} />
               <Route path="/find-medicines" element={<FindMedicine />} />
@@ -68,10 +69,14 @@ export const App: React.FC = () => {
           {/* ========================================================
               PHARMACY PORTAL (Owners & Staff - Authentication Required)
               ======================================================== */}
-          {/* Dedicated Staff Login */}
-          {appMode === "pharmacy" && (
+          {showPharmacy && (
             <>
-              <Route path="/" element={<Navigate to="/dashboard" replace />} />
+              {/* When in dedicated pharmacy deployment mode, root path redirects to dashboard */}
+              {appMode === "pharmacy" && (
+                <Route path="/" element={<Navigate to="/dashboard" replace />} />
+              )}
+
+              {/* Dedicated Staff Login */}
               <Route path="/login" element={<LoginPage />} />
 
               {/* Protected Management Workspace */}
@@ -86,40 +91,143 @@ export const App: React.FC = () => {
                 <Route index element={<DashboardOverview />} />
 
                 {/* M2: Medicine Catalog & Inventory */}
-                <Route path="medicines" element={<MedicinesPage />} />
-                <Route path="inventory" element={<InventoryPage />} />
+                <Route
+                  path="medicines"
+                  element={
+                    <ProtectedRoute requiredPermission="catalog:read">
+                      <MedicinesPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="inventory"
+                  element={
+                    <ProtectedRoute requiredPermission="inventory:read">
+                      <InventoryPage />
+                    </ProtectedRoute>
+                  }
+                />
 
                 {/* M3: Purchasing & GRN Workflow */}
-                <Route path="purchasing" element={<GrnRegisterPage />} />
+                <Route
+                  path="purchasing"
+                  element={
+                    <ProtectedRoute requiredPermission="grn:read">
+                      <GrnRegisterPage />
+                    </ProtectedRoute>
+                  }
+                />
                 <Route
                   path="purchasing/distributors"
-                  element={<DistributorsPage />}
+                  element={
+                    <ProtectedRoute requiredPermission="suppliers:read">
+                      <DistributorsPage />
+                    </ProtectedRoute>
+                  }
                 />
                 <Route
                   path="purchasing/verification"
-                  element={<GrnVerificationPage />}
+                  element={
+                    <ProtectedRoute requiredPermission="grn:verify">
+                      <GrnVerificationPage />
+                    </ProtectedRoute>
+                  }
                 />
-                <Route path="purchasing/new-grn" element={<NewGrnPage />} />
-                <Route path="purchasing/grns/:grnId" element={<GrnDetailsPage />} />
+                <Route
+                  path="purchasing/new-grn"
+                  element={
+                    <ProtectedRoute requiredPermission="grn:create">
+                      <NewGrnPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="purchasing/grns/:grnId"
+                  element={
+                    <ProtectedRoute requiredPermission="grn:read">
+                      <GrnDetailsPage />
+                    </ProtectedRoute>
+                  }
+                />
                 <Route
                   path="purchasing/grns/:grnId/edit"
-                  element={<NewGrnPage />}
+                  element={
+                    <ProtectedRoute requiredPermission="grn:create">
+                      <NewGrnPage />
+                    </ProtectedRoute>
+                  }
                 />
 
                 {/* M4: Sales & Transactions */}
-                <Route path="transactions" element={<TransactionsPage />} />
-                <Route path="sales" element={<SalesPage />} />
-                <Route path="returns" element={<ReturnsPage />} />
+                <Route
+                  path="transactions"
+                  element={
+                    <ProtectedRoute requiredPermission="sales:read">
+                      <TransactionsPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="sales"
+                  element={
+                    <ProtectedRoute requiredPermission="sales:create">
+                      <SalesPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="returns"
+                  element={
+                    <ProtectedRoute requiredPermission="returns:read">
+                      <ReturnsPage />
+                    </ProtectedRoute>
+                  }
+                />
+
                 {/* M5 / M6: Alerts, Community Demand, Notices & Reports */}
-                <Route path="alerts" element={<AlertsPage />} />
-                <Route path="community-demand" element={<CommunityDemandPage />} />
-                <Route path="safety-notices" element={<SafetyNoticesPage />} />
-                <Route path="reports" element={<ReportsPage />} />
+                <Route
+                  path="alerts"
+                  element={
+                    <ProtectedRoute requiredPermission="alerts:read">
+                      <AlertsPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="community-demand"
+                  element={
+                    <ProtectedRoute requiredPermission="requests:read">
+                      <CommunityDemandPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="safety-notices"
+                  element={
+                    <ProtectedRoute requiredPermission="safety:read">
+                      <SafetyNoticesPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="reports"
+                  element={
+                    <ProtectedRoute requiredPermission="reports:read">
+                      <ReportsPage />
+                    </ProtectedRoute>
+                  }
+                />
 
                 {/* M1: Settings & User Management */}
-                <Route path="settings" element={<SettingsPage />} />
+                <Route
+                  path="settings"
+                  element={
+                    <ProtectedRoute requiredPermission="pharmacy:settings">
+                      <SettingsPage />
+                    </ProtectedRoute>
+                  }
+                />
               </Route>
-
             </>
           )}
 

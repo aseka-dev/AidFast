@@ -195,6 +195,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       isLoading: false
     });
   };
+  const hasPermission = (permission: string): boolean => {
+    if (!state.currentPharmacy) return false;
+    const permissions = state.currentPharmacy.permissions || [];
+    const role = state.currentPharmacy.role?.toUpperCase();
+    if (role === 'ADMIN' || permissions.includes('*')) {
+      return true;
+    }
+    return permissions.includes(permission);
+  };
+
 
   return (
     <AuthContext.Provider
@@ -202,7 +212,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         ...state,
         login,
         logout,
-        selectPharmacy
+        selectPharmacy,
+        hasPermission
       }}
     >
       {children}
@@ -211,3 +222,4 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 };
 
 export default AuthProvider;
+

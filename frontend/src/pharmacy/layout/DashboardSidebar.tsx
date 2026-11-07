@@ -2,6 +2,7 @@ import React from 'react';
 import { NavLink } from 'react-router-dom';
 import AidFastLogo from '../../shared/components/AidFastLogo';
 import PharmacySwitcher from '../components/PharmacySwitcher';
+import { useAuth } from '../../shared/context/useAuth';
 import {
   DashboardIcon,
   MedicinesIcon,
@@ -27,6 +28,14 @@ interface DashboardSidebarProps {
   onSignOut?: () => void;
 }
 
+interface NavItem {
+  title: string;
+  path: string;
+  icon: React.FC<{ className?: string }>;
+  owner: string;
+  requiredPermissions: string[];
+}
+
 export const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
   onCloseMobile,
   user = {
@@ -37,19 +46,31 @@ export const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
   pharmacyName = 'Greenway Community Pharmacy',
   onSignOut
 }) => {
-  const managementNav = [
-    { title: 'Medicines', path: '/dashboard/medicines', icon: MedicinesIcon, owner: 'M2' },
-    { title: 'Inventory', path: '/dashboard/inventory', icon: InventoryIcon, owner: 'M2' },
-    { title: 'Purchasing', path: '/dashboard/purchasing', icon: PurchasingIcon, owner: 'M3' },
-    { title: 'Transactions', path: '/dashboard/transactions', icon: TransactionsIcon, owner: 'M4' },
-    { title: "Returns",  path: "/dashboard/returns",  icon: TransactionsIcon,  owner: "M4",},
-    { title: 'Sales', path: '/dashboard/sales', icon: TransactionsIcon, owner: 'M4' },
-    { title: 'Expiry & Stock Alerts', path: '/dashboard/alerts', icon: AlertsIcon, owner: 'M5' },
-    { title: 'Community Demand', path: '/dashboard/community-demand', icon: CommunityDemandIcon, owner: 'M5/M6' },
-    { title: 'Safety Notices', path: '/dashboard/safety-notices', icon: SafetyNoticesIcon, owner: 'M5' },
-    { title: 'Reports', path: '/dashboard/reports', icon: ReportsIcon, owner: 'M5' },
-    { title: 'Settings', path: '/dashboard/settings', icon: SettingsIcon, owner: 'M1' }
+  const { currentPharmacy, hasPermission } = useAuth();
+
+  const userRole = currentPharmacy?.role?.toUpperCase() || user.role?.toUpperCase();
+  const permissions = currentPharmacy?.permissions || [];
+  const isAdmin = userRole === 'ADMIN' || permissions.includes('*');
+
+  const allManagementNav: NavItem[] = [
+    { title: 'Medicines', path: '/dashboard/medicines', icon: MedicinesIcon, owner: 'M2', requiredPermissions: ['catalog:read'] },
+    { title: 'Inventory', path: '/dashboard/inventory', icon: InventoryIcon, owner: 'M2', requiredPermissions: ['inventory:read'] },
+    { title: 'Purchasing', path: '/dashboard/purchasing', icon: PurchasingIcon, owner: 'M3', requiredPermissions: ['grn:read', 'po:read', 'suppliers:read'] },
+    { title: 'Transactions', path: '/dashboard/transactions', icon: TransactionsIcon, owner: 'M4', requiredPermissions: ['sales:read'] },
+    { title: 'Returns', path: '/dashboard/returns', icon: TransactionsIcon, owner: 'M4', requiredPermissions: ['returns:read'] },
+    { title: 'Sales', path: '/dashboard/sales', icon: TransactionsIcon, owner: 'M4', requiredPermissions: ['sales:create', 'sales:read'] },
+    { title: 'Expiry & Stock Alerts', path: '/dashboard/alerts', icon: AlertsIcon, owner: 'M5', requiredPermissions: ['alerts:read'] },
+    { title: 'Community Demand', path: '/dashboard/community-demand', icon: CommunityDemandIcon, owner: 'M5/M6', requiredPermissions: ['requests:read'] },
+    { title: 'Safety Notices', path: '/dashboard/safety-notices', icon: SafetyNoticesIcon, owner: 'M5', requiredPermissions: ['safety:read'] },
+    { title: 'Reports', path: '/dashboard/reports', icon: ReportsIcon, owner: 'M5', requiredPermissions: ['reports:read'] },
+    { title: 'Settings', path: '/dashboard/settings', icon: SettingsIcon, owner: 'M1', requiredPermissions: ['pharmacy:settings', 'users:read'] }
   ];
+
+  // Dynamic role-based filtering based on tenant permissions
+  const visibleNav = allManagementNav.filter((item) => {
+    if (isAdmin) return true;
+    return item.requiredPermissions.some((perm) => hasPermission(perm));
+  });
 
   const getNavLinkClass = ({ isActive }: { isActive: boolean }) =>
     `flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm transition-all duration-150 ${
@@ -57,6 +78,8 @@ export const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
         ? 'bg-[#156e50] text-white font-medium shadow-sm border border-emerald-500/25'
         : 'text-emerald-100/75 hover:text-white hover:bg-emerald-900/40 font-normal'
     }`;
+
+  const currentRole = currentPharmacy?.role || user.role;
 
   return (
     <aside className="w-72 bg-[#094732] flex flex-col h-full min-h-screen text-white select-none border-r border-emerald-950/40">
@@ -104,13 +127,18 @@ export const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
           </nav>
         </div>
 
-        {/* MANAGEMENT */}
+        {/* MANAGEMENT (Role-Filtered) */}
         <div>
-          <h3 className="px-3 mb-2 text-[11px] font-semibold tracking-wider text-emerald-300/60 uppercase">
-            MANAGEMENT
-          </h3>
+          <div className="px-3 mb-2 flex items-center justify-between">
+            <h3 className="text-[11px] font-semibold tracking-wider text-emerald-300/60 uppercase">
+              MANAGEMENT
+            </h3>
+            <span className="text-[10px] bg-emerald-900/60 text-emerald-300 px-1.5 py-0.5 rounded font-medium border border-emerald-700/40">
+              {visibleNav.length} modules
+            </span>
+          </div>
           <nav className="space-y-1">
-            {managementNav.map((item) => {
+            {visibleNav.map((item) => {
               const Icon = item.icon;
               return (
                 <NavLink
@@ -137,13 +165,13 @@ export const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
             <div className="w-9 h-9 rounded-full bg-[#c8f0d8] text-[#064e3b] font-bold text-xs flex items-center justify-center shrink-0 shadow-xs">
               {user.initials}
             </div>
-            {/* Name & Role */}
+            {/* Name & Dynamic Tenant Role */}
             <div className="min-w-0">
               <p className="text-xs font-semibold text-white truncate leading-tight">
                 {user.name}
               </p>
-              <p className="text-[11px] text-emerald-200/70 truncate">
-                {user.role}
+              <p className="text-[11px] text-emerald-200/70 truncate flex items-center gap-1">
+                <span>{currentRole}</span>
               </p>
             </div>
           </div>
@@ -164,4 +192,3 @@ export const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
 };
 
 export default DashboardSidebar;
-
