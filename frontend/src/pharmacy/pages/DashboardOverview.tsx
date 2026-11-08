@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 
@@ -11,7 +12,10 @@ const TONES: Record<Tone, { box: string; num: string; cta: string; tag: string }
 };
 
 const MOVE_TEXT: Record<string, string> = {
-    received: 'text-[#1b7a4b]', sale: 'text-[#2563eb]', adjust: 'text-[#0f8a6b]', return: 'text-[#b45309]',
+    received: 'text-[#1b7a4b]',
+    sale: 'text-[#2563eb]',
+    adjust: 'text-[#0f8a6b]',
+    return: 'text-[#b45309]',
 };
 
 /* ---------- mock data: replace with API calls from Day 6 onward ---------- */
@@ -61,33 +65,68 @@ const selectCls = 'h-9 w-full min-w-[110px] rounded-lg border border-[#cfd8d2] b
 const th = 'px-2 py-3 text-left text-[10px] font-semibold uppercase tracking-wide text-[#6b7a70]';
 const td = 'border-t border-[#e2e8e3] px-2 py-3.5 align-middle';
 
+/* ---------- corrected Donut chart ---------- */
 function Donut({ total }: { total: number }) {
     const r = 70;
     const c = 2 * Math.PI * r;
 
+    const chartSlices = SLICES.map((s, index) => {
+        const previousTotal = SLICES
+            .slice(0, index)
+            .reduce((sum, item) => sum + item.pct, 0);
+
+        const len = (s.pct / 100) * c;
+
+        return {
+            ...s,
+            len,
+            offset: (previousTotal / 100) * c,
+        };
+    });
+
     return (
-        <svg viewBox="0 0 180 180" className="h-44 w-44 shrink-0" role="img" aria-label="Stock status distribution">
+        <svg
+            viewBox="0 0 180 180"
+            className="h-44 w-44 shrink-0"
+            role="img"
+            aria-label="Stock status distribution"
+        >
             <g transform="rotate(-90 90 90)">
-                {SLICES.map((s, idx) => {
-                    const len = (s.pct / 100) * c;
-                    const offset = SLICES.slice(0, idx).reduce((acc, curr) => acc + (curr.pct / 100) * c, 0);
-                    return (
-                        <circle
-                            key={s.label}
-                            cx="90"
-                            cy="90"
-                            r={r}
-                            fill="none"
-                            stroke={s.color}
-                            strokeWidth="22"
-                            strokeDasharray={`${len} ${c - len}`}
-                            strokeDashoffset={-offset}
-                        />
-                    );
-                })}
+                {chartSlices.map((s) => (
+                    <circle
+                        key={s.label}
+                        cx="90"
+                        cy="90"
+                        r={r}
+                        fill="none"
+                        stroke={s.color}
+                        strokeWidth="22"
+                        strokeDasharray={`${s.len} ${c - s.len}`}
+                        strokeDashoffset={-s.offset}
+                    />
+                ))}
             </g>
-            <text x="90" y="92" textAnchor="middle" fontSize="24" fontWeight="700" fill="#14291d">{total.toLocaleString()}</text>
-            <text x="90" y="110" textAnchor="middle" fontSize="9" fill="#6b7a70">Total medicines</text>
+
+            <text
+                x="90"
+                y="92"
+                textAnchor="middle"
+                fontSize="24"
+                fontWeight="700"
+                fill="#14291d"
+            >
+                {total.toLocaleString()}
+            </text>
+
+            <text
+                x="90"
+                y="110"
+                textAnchor="middle"
+                fontSize="9"
+                fill="#6b7a70"
+            >
+                Total medicines
+            </text>
         </svg>
     );
 }
@@ -132,8 +171,13 @@ export default function M5DashboardOverview({ userName = 'Samir' }: { userName?:
                     </div>
                     <p className={`mt-1 ${muted}`}>Distribution for {month} {year}.</p>
                     <div className="mt-3 flex flex-wrap gap-3">
-                        {([['Period', period, setPeriod, ['Weekly', 'Monthly', 'Yearly']], ['Month', month, setMonth, MONTHS], ['Year', year, setYear, ['2025', '2026']]] as [string, string, (v: string) => void, string[]][]).map(([label, value, set, options]) => (
-                            <label key={label} className="flex flex-col gap-1 text-[11px] text-[#6b7a70]">{label}
+                        {([
+                            ['Period', period, setPeriod, ['Weekly', 'Monthly', 'Yearly']],
+                            ['Month', month, setMonth, MONTHS],
+                            ['Year', year, setYear, ['2025', '2026']]
+                        ] as [string, string, (v: string) => void, string[]][]).map(([label, value, set, options]) => (
+                            <label key={label} className="flex flex-col gap-1 text-[11px] text-[#6b7a70]">
+                                {label}
                                 <select className={selectCls} value={value} onChange={(e) => set(e.target.value)}>
                                     {options.map((o) => <option key={o}>{o}</option>)}
                                 </select>
@@ -185,7 +229,11 @@ export default function M5DashboardOverview({ userName = 'Samir' }: { userName?:
                     <div className="mt-3 overflow-x-auto">
                         <table className="w-full min-w-[720px] border-collapse text-xs">
                             <thead className="bg-[#f4f7f5]">
-                                <tr>{['Medicine', 'Brand / Trade Name', 'Movement Type', 'Quantity', 'Batch No.', 'Performed By', 'Date'].map((h) => <th key={h} className={th}>{h}</th>)}</tr>
+                                <tr>
+                                    {['Medicine', 'Brand / Trade Name', 'Movement Type', 'Quantity', 'Batch No.', 'Performed By', 'Date'].map((h) => (
+                                        <th key={h} className={th}>{h}</th>
+                                    ))}
+                                </tr>
                             </thead>
                             <tbody>
                                 {MOVES.map((m) => (
@@ -219,7 +267,10 @@ export default function M5DashboardOverview({ userName = 'Samir' }: { userName?:
                                 </div>
                                 <span className="flex items-center gap-1.5 rounded-full bg-[#ece1fa] px-3 py-1.5 text-sm font-semibold text-[#6d35b8]">
                                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                                        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><path d="M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8" /><path d="M22 21v-2a4 4 0 0 0-3-3.9" /><path d="M16 3.1a4 4 0 0 1 0 7.8" />
+                                        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                                        <path d="M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8" />
+                                        <path d="M22 21v-2a4 4 0 0 0-3-3.9" />
+                                        <path d="M16 3.1a4 4 0 0 1 0 7.8" />
                                     </svg>
                                     {d.count}
                                 </span>
