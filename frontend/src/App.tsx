@@ -32,7 +32,6 @@ import {
   InventoryPage,
   TransactionsPage,
   ReturnsPage,
-  AlertsPage,
   ExpiryStockAlerts,
   CommunityDemandPage,
   SafetyNoticesPage,
@@ -191,18 +190,18 @@ export const App: React.FC = () => {
                   path="alerts"
                   element={
                     <ProtectedRoute requiredPermission="alerts:read">
-                      <AlertsPage />
+                      <ExpiryStockAlerts />
                     </ProtectedRoute>
                   }
                 />
                 <Route
-  path="expiry-stock-alerts"
-  element={
-    <ProtectedRoute requiredPermission="alerts:read">
-      <ExpiryStockAlerts />
-    </ProtectedRoute>
-  }
-/>
+                  path="expiry-stock-alerts"
+                  element={
+                    <ProtectedRoute requiredPermission="alerts:read">
+                      <ExpiryStockAlerts />
+                    </ProtectedRoute>
+                  }
+                />
                 <Route
                   path="community-demand"
                   element={

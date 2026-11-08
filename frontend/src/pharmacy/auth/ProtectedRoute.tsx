@@ -8,7 +8,7 @@ interface ProtectedRouteProps {
 }
 
 export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requiredPermission }) => {
-  const { isAuthenticated, isLoading, hasPermission } = useAuth();
+  const { isAuthenticated, isLoading, hasPermission, currentPharmacy, user } = useAuth();
   const location = useLocation();
 
   if (isLoading) {
@@ -28,7 +28,10 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requir
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  if (requiredPermission && !hasPermission(requiredPermission)) {
+  const role = (currentPharmacy?.role || user?.role || '').toUpperCase();
+  const isAdmin = role === 'ADMIN' || role === 'OWNER' || currentPharmacy?.permissions?.includes('*');
+
+  if (requiredPermission && !isAdmin && !hasPermission(requiredPermission)) {
     return <Navigate to="/dashboard" replace />;
   }
 

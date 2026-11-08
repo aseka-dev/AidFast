@@ -3,7 +3,8 @@ import jwt from 'jsonwebtoken';
 import User from '../models/User';
 import Pharmacy from '../models/Pharmacy';
 import PharmacyUser from '../models/PharmacyUser';
-import Role from '../models/Role';
+import Role, { RoleName } from '../models/Role';
+import { ROLE_PERMISSIONS } from '../config/permissions';
 
 export interface AuthRequest extends Request {
     user?: {
@@ -96,7 +97,9 @@ export const authenticate = async (
             }
 
             role = roleRecord.name;
-            permissions = roleRecord.permissions;
+            const roleName = (roleRecord.name || '').toUpperCase() as RoleName;
+            const configPermissions = ROLE_PERMISSIONS[roleName]?.permissions || [];
+            permissions = Array.from(new Set([...configPermissions, ...(roleRecord.permissions || [])]));
         }
 
         req.user = {

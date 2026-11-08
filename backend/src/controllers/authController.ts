@@ -5,8 +5,9 @@ import mongoose from 'mongoose';
 import User from '../models/User';
 import Pharmacy from '../models/Pharmacy';
 import PharmacyUser from '../models/PharmacyUser';
-import Role from '../models/Role';
+import Role, { RoleName } from '../models/Role';
 import AuditLog from '../models/AuditLog';
+import { ROLE_PERMISSIONS } from '../config/permissions';
 
 import generateToken from '../utils/generateToken';
 import auditLogger from '../utils/auditLogger';
@@ -82,12 +83,18 @@ export const login = async (
             .filter((membership: any) =>
                 membership.pharmacyId?.status === 'ACTIVE'
             )
-            .map((membership: any) => ({
-                pharmacyId: membership.pharmacyId._id,
-                pharmacyName: membership.pharmacyId.name,
-                role: membership.roleId.name,
-                permissions: membership.roleId.permissions
-            }));
+            .map((membership: any) => {
+                const roleName = (membership.roleId?.name || '').toUpperCase() as RoleName;
+                const configPermissions = ROLE_PERMISSIONS[roleName]?.permissions || [];
+                const mergedPermissions = Array.from(new Set([...configPermissions, ...(membership.roleId?.permissions || [])]));
+
+                return {
+                    pharmacyId: membership.pharmacyId._id,
+                    pharmacyName: membership.pharmacyId.name,
+                    role: membership.roleId?.name,
+                    permissions: mergedPermissions
+                };
+            });
 
         if (availablePharmacies.length === 0) {
             try {
@@ -226,6 +233,10 @@ export const selectPharmacy = async (
             console.warn('Audit logger warning (non-fatal):', auditError);
         }
 
+        const roleName = (role.name || '').toUpperCase() as RoleName;
+        const configPermissions = ROLE_PERMISSIONS[roleName]?.permissions || [];
+        const mergedPermissions = Array.from(new Set([...configPermissions, ...(role.permissions || [])]));
+
         res.status(200).json({
             message: 'Pharmacy selected successfully',
             token,
@@ -234,7 +245,7 @@ export const selectPharmacy = async (
                 name: pharmacy.name
             },
             role: role.name,
-            permissions: role.permissions || []
+            permissions: mergedPermissions
         });
 
     } catch (error: any) {
