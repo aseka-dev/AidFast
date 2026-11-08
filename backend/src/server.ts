@@ -21,6 +21,16 @@ import publicPharmacyRoutes from './routes/publicPharmacyRoutes';
 import alertRoutes from './routes/alertRoutes';
 import safetyRoutes from './routes/safetyRoutes';
 
+import medicineRoutes from './routes/medicineRoutes';
+import batchRoutes from './routes/batchRoutes';
+
+import {
+  authenticate,
+  requireSelectedPharmacy
+} from './middleware/authMiddleware';
+
+import matchPharmacyParam from './middleware/matchPharmacyParam';
+
 // Load environment variables from backend/.env
 dotenv.config({
     path: path.resolve(__dirname, '../.env')
@@ -100,6 +110,23 @@ app.use(
     grnRoutes
 );
 
+// Medicine Catalog API
+app.use(
+  '/api/v1/pharmacies/:pharmacyId/medicines',
+  authenticate,
+  requireSelectedPharmacy,
+  matchPharmacyParam,
+  medicineRoutes
+);
+
+// Batch Management API
+app.use(
+  '/api/v1/pharmacies/:pharmacyId/batches',
+  authenticate,
+  requireSelectedPharmacy,
+  matchPharmacyParam,
+  batchRoutes
+);
 
 app.use((_req, res) => {
     res.status(404).json({

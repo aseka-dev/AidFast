@@ -19,5 +19,7 @@ const medicineCatalogSchema = new Schema({
 });
 
 medicineCatalogSchema.index({ genericName: 1, brandTradeName: 1 });
+medicineCatalogSchema.index({ genericName: 1 });
+medicineCatalogSchema.index({ brandTradeName: 1 });
 
 export default mongoose.model('MedicineCatalog', medicineCatalogSchema);
