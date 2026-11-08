@@ -214,3 +214,102 @@ export const removeUser = async (
         });
     }
 };
+
+export const updateUserRole = async (
+    req: AuthRequest,
+    res: Response
+): Promise<void> => {
+    try {
+        const { membershipId } = req.params;
+        const { roleName } = req.body;
+
+        if (!membershipId || !mongoose.isValidObjectId(membershipId)) {
+            res.status(400).json({
+                message: 'Invalid membership ID'
+            });
+            return;
+        }
+
+        if (!roleName) {
+            res.status(400).json({
+                message: 'Role name is required'
+            });
+            return;
+        }
+
+        const allowedRoles = [
+            'ADMIN',
+            'PHARMACIST',
+            'STAFF',
+            'VERIFIER'
+        ];
+
+        if (!allowedRoles.includes(roleName.toUpperCase())) {
+            res.status(400).json({
+                message: 'Invalid role'
+            });
+            return;
+        }
+
+        const membership = await PharmacyUser.findOne({
+            _id: membershipId,
+            pharmacyId: req.user?.pharmacyId
+        }).populate('roleId');
+
+        if (!membership) {
+            res.status(404).json({
+                message: 'Staff membership not found'
+            });
+            return;
+        }
+
+        const newRole = await Role.findOne({
+            name: roleName.toUpperCase()
+        });
+
+        if (!newRole) {
+            res.status(400).json({
+                message: 'Role not found'
+            });
+            return;
+        }
+
+        const oldRoleName = (membership.roleId as any)?.name || 'UNKNOWN';
+
+        if (
+            String(membership.userId) === String(req.user?.userId) &&
+            oldRoleName === 'ADMIN' &&
+            newRole.name !== 'ADMIN'
+        ) {
+            res.status(400).json({
+                message: 'You cannot demote your own admin account'
+            });
+            return;
+        }
+
+        membership.roleId = newRole._id as any;
+        await membership.save();
+
+        await auditLogger({
+            userId: req.user!.userId,
+            pharmacyId: req.user!.pharmacyId,
+            action: 'USER_ROLE_UPDATED',
+            entity: 'PharmacyUser',
+            entityId: membership.id,
+            description: `Updated role for membership ${membership.id} from ${oldRoleName} to ${newRole.name}`,
+            ipAddress: req.ip
+        });
+
+        res.status(200).json({
+            message: 'User role updated successfully',
+            role: newRole.name,
+            membershipId: membership.id
+        });
+
+    } catch (error) {
+        console.error('Update user role error:', error);
+        res.status(500).json({
+            message: 'Unable to update user role'
+        });
+    }
+};

@@ -4,10 +4,12 @@ import {
     login,
     selectPharmacy,
     getMe,
-    logout
+    logout,
+    changePassword,
+    getAuditLogs
 } from '../controllers/authController';
 
-import { authenticate } from '../middleware/authMiddleware';
+import { authenticate, requireSelectedPharmacy } from '../middleware/authMiddleware';
 
 const router = Router();
 
@@ -29,6 +31,19 @@ router.post(
     '/logout',
     authenticate,
     logout
+);
+
+router.post(
+    '/change-password',
+    authenticate,
+    changePassword
+);
+
+router.get(
+    '/audit-logs',
+    authenticate,
+    requireSelectedPharmacy,
+    getAuditLogs
 );
 
 export default router;

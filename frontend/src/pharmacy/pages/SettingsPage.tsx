@@ -46,7 +46,7 @@ export const SettingsPage: React.FC = () => {
 
   // System Settings Fields
   const [dateFormat, setDateFormat] = useState('DD MMM YYYY');
-  const [currency, setCurrency] = useState('LKR â€” Sri Lankan Rupee');
+  const [currency, setCurrency] = useState('LKR \u2014 Sri Lankan Rupee');
 
   // User Management State
   const [users, setUsers] = useState<StaffUser[]>([]);
@@ -55,16 +55,27 @@ export const SettingsPage: React.FC = () => {
 
   // Add User Modal State
   const [showAddModal, setShowAddModal] = useState(false);
-  const [newFullName, setNewFullName] = useState('');
-  const [newEmail, setNewEmail] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [newRole, setNewRole] = useState<'PHARMACIST' | 'STAFF' | 'VERIFIER' | 'ADMIN'>('PHARMACIST');
+  const [newUserFullName, setNewUserFullName] = useState('');
+  const [newUserEmail, setNewUserEmail] = useState('');
+  const [newUserPassword, setNewUserPassword] = useState('');
+  const [newUserRole, setNewUserRole] = useState<'PHARMACIST' | 'STAFF' | 'VERIFIER' | 'ADMIN'>('PHARMACIST');
   const [addUserLoading, setAddUserLoading] = useState(false);
   const [addUserError, setAddUserError] = useState<string | null>(null);
 
+  // Edit Role Modal State
+  const [editingUser, setEditingUser] = useState<StaffUser | null>(null);
+  const [editRole, setEditRole] = useState<'PHARMACIST' | 'STAFF' | 'VERIFIER' | 'ADMIN'>('PHARMACIST');
+  const [editRoleLoading, setEditRoleLoading] = useState(false);
+  const [editRoleError, setEditRoleError] = useState<string | null>(null);
+
   // Change Password Modal State
   const [showPasswordModal, setShowPasswordModal] = useState(false);
-  const [passwordNotice, setPasswordNotice] = useState<string | null>(null);
+  const [pwdCurrent, setPwdCurrent] = useState('');
+  const [pwdNew, setPwdNew] = useState('');
+  const [pwdConfirm, setPwdConfirm] = useState('');
+  const [passwordLoading, setPasswordLoading] = useState(false);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [passwordSuccess, setPasswordSuccess] = useState<string | null>(null);
 
   // Status & Feedback
   const [isLoading, setIsLoading] = useState(true);
@@ -93,7 +104,7 @@ export const SettingsPage: React.FC = () => {
         if (data.settings) {
           setLowStockThreshold(data.settings.lowStockThreshold ?? 10);
           setDateFormat(data.settings.dateFormat || 'DD MMM YYYY');
-          setCurrency(data.settings.currency || 'LKR — Sri Lankan Rupee');
+          setCurrency(data.settings.currency || 'LKR \u2014 Sri Lankan Rupee');
 
           const months = data.settings.expiryAlertMonths || [12, 9, 6];
           setExpiryAlertMonths(months.includes(12) ? 12 : 12);
@@ -131,7 +142,7 @@ export const SettingsPage: React.FC = () => {
           if (data.settings) {
             setLowStockThreshold(data.settings.lowStockThreshold ?? 10);
             setDateFormat(data.settings.dateFormat || 'DD MMM YYYY');
-            setCurrency(data.settings.currency || 'LKR — Sri Lankan Rupee');
+            setCurrency(data.settings.currency || 'LKR \u2014 Sri Lankan Rupee');
 
             const months = data.settings.expiryAlertMonths || [12, 9, 6];
             setExpiryAlertMonths(months.includes(12) ? 12 : 12);
@@ -207,12 +218,12 @@ export const SettingsPage: React.FC = () => {
     e.preventDefault();
     setAddUserError(null);
 
-    if (!newFullName.trim() || !newEmail.trim() || !newPassword) {
+    if (!newUserFullName.trim() || !newUserEmail.trim() || !newUserPassword) {
       setAddUserError('All fields are required.');
       return;
     }
 
-    if (newPassword.length < 8) {
+    if (newUserPassword.length < 8) {
       setAddUserError('Password must contain at least 8 characters.');
       return;
     }
@@ -223,19 +234,19 @@ export const SettingsPage: React.FC = () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          fullName: newFullName.trim(),
-          email: newEmail.trim().toLowerCase(),
-          password: newPassword,
-          roleName: newRole
+          fullName: newUserFullName.trim(),
+          email: newUserEmail.trim().toLowerCase(),
+          password: newUserPassword,
+          roleName: newUserRole
         })
       });
 
       if (res.ok) {
         setShowAddModal(false);
-        setNewFullName('');
-        setNewEmail('');
-        setNewPassword('');
-        setNewRole('PHARMACIST');
+        setNewUserFullName('');
+        setNewUserEmail('');
+        setNewUserPassword('');
+        setNewUserRole('PHARMACIST');
         showNotification('success', 'Staff member added successfully.');
         loadData();
       } else {
@@ -247,6 +258,43 @@ export const SettingsPage: React.FC = () => {
       setAddUserError(msg);
     } finally {
       setAddUserLoading(false);
+    }
+  };
+
+  // Open Edit User Role
+  const handleOpenEditRole = (u: StaffUser) => {
+    setEditingUser(u);
+    const currRole = (u.role?.name?.toUpperCase() || 'PHARMACIST') as 'PHARMACIST' | 'STAFF' | 'VERIFIER' | 'ADMIN';
+    setEditRole(currRole);
+    setEditRoleError(null);
+  };
+
+  // Update Role Handler
+  const handleUpdateRole = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingUser) return;
+    setEditRoleLoading(true);
+    setEditRoleError(null);
+
+    try {
+      const res = await authenticatedFetch(apiUrl(`/api/users/${editingUser.membershipId}/role`), {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ roleName: editRole })
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) {
+        showNotification('success', `Role for ${editingUser.user?.fullName} updated to ${editRole}.`);
+        setEditingUser(null);
+        loadData();
+      } else {
+        setEditRoleError(data.message || 'Failed to update user role.');
+      }
+    } catch {
+      setEditRoleError('Network error while updating role.');
+    } finally {
+      setEditRoleLoading(false);
     }
   };
 
@@ -270,6 +318,59 @@ export const SettingsPage: React.FC = () => {
       }
     } catch {
       showNotification('error', 'Error removing staff member.');
+    }
+  };
+
+  // Change Password Handler
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPasswordError(null);
+    setPasswordSuccess(null);
+
+    if (!pwdCurrent || !pwdNew) {
+      setPasswordError('Current password and new password are required.');
+      return;
+    }
+
+    if (pwdNew.length < 8) {
+      setPasswordError('New password must contain at least 8 characters.');
+      return;
+    }
+
+    if (pwdNew !== pwdConfirm) {
+      setPasswordError('New passwords do not match.');
+      return;
+    }
+
+    setPasswordLoading(true);
+    try {
+      const res = await authenticatedFetch(apiUrl('/api/auth/change-password'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          currentPassword: pwdCurrent,
+          newPassword: pwdNew
+        })
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) {
+        setPasswordSuccess(data.message || 'Password changed successfully!');
+        setPwdCurrent('');
+        setPwdNew('');
+        setPwdConfirm('');
+        setTimeout(() => {
+          setPasswordSuccess(null);
+          setShowPasswordModal(false);
+          showNotification('success', 'Your password was changed successfully.');
+        }, 1500);
+      } else {
+        setPasswordError(data.message || 'Unable to change password.');
+      }
+    } catch {
+      setPasswordError('Network error while changing password.');
+    } finally {
+      setPasswordLoading(false);
     }
   };
 
@@ -356,7 +457,7 @@ export const SettingsPage: React.FC = () => {
           }`}
         >
           <div className="flex items-center gap-2">
-            <span>{feedback.type === 'success' ? 'âœ“' : 'âš ï¸'}</span>
+            <span>{feedback.type === 'success' ? '\u2713' : '\u26A0'}</span>
             <span className="font-medium">{feedback.message}</span>
           </div>
           <button
@@ -364,7 +465,7 @@ export const SettingsPage: React.FC = () => {
             onClick={() => setFeedback(null)}
             className="text-gray-400 hover:text-gray-700 text-xs font-bold"
           >
-            âœ•
+            \u2715
           </button>
         </div>
       )}
@@ -647,7 +748,11 @@ export const SettingsPage: React.FC = () => {
                   </span>
                   <button
                     type="button"
-                    onClick={() => setShowPasswordModal(true)}
+                    onClick={() => {
+                      setPasswordError(null);
+                      setPasswordSuccess(null);
+                      setShowPasswordModal(true);
+                    }}
                     className="px-4 py-2 border border-gray-300 rounded-xl text-xs font-semibold text-gray-700 hover:bg-gray-50 transition cursor-pointer"
                   >
                     Change password
@@ -694,9 +799,9 @@ export const SettingsPage: React.FC = () => {
                       onChange={(e) => setCurrency(e.target.value)}
                       className="w-full px-3.5 py-2.5 text-sm bg-white border border-gray-300 rounded-xl focus:outline-hidden focus:border-emerald-600 transition"
                     >
-                      <option value="LKR â€” Sri Lankan Rupee">LKR â€” Sri Lankan Rupee</option>
-                      <option value="USD â€” US Dollar">USD â€” US Dollar</option>
-                      <option value="GBP â€” British Pound">GBP â€” British Pound</option>
+                      <option value="LKR \u2014 Sri Lankan Rupee">LKR \u2014 Sri Lankan Rupee</option>
+                      <option value="USD \u2014 US Dollar">USD \u2014 US Dollar</option>
+                      <option value="GBP \u2014 British Pound">GBP \u2014 British Pound</option>
                     </select>
                     <p className="text-[11px] text-gray-400 mt-1">Example: LKR 12,500.00</p>
                   </div>
@@ -861,7 +966,7 @@ export const SettingsPage: React.FC = () => {
                             <div className="flex items-center justify-end gap-3">
                               <button
                                 type="button"
-                                onClick={() => showNotification('success', `Editing ${u.user?.fullName}`)}
+                                onClick={() => handleOpenEditRole(u)}
                                 className="text-gray-600 hover:text-gray-900 font-semibold cursor-pointer"
                               >
                                 Edit
@@ -920,7 +1025,7 @@ export const SettingsPage: React.FC = () => {
                 onClick={() => setShowAddModal(false)}
                 className="text-gray-400 hover:text-gray-700 text-lg font-bold p-1 cursor-pointer"
               >
-                âœ•
+                \u2715
               </button>
             </div>
 
@@ -939,8 +1044,8 @@ export const SettingsPage: React.FC = () => {
                   type="text"
                   required
                   placeholder="e.g. Nuwan Perera"
-                  value={newFullName}
-                  onChange={(e) => setNewFullName(e.target.value)}
+                  value={newUserFullName}
+                  onChange={(e) => setNewUserFullName(e.target.value)}
                   className="w-full px-3.5 py-2 text-xs bg-white border border-gray-300 rounded-xl focus:outline-hidden focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600"
                 />
               </div>
@@ -953,8 +1058,8 @@ export const SettingsPage: React.FC = () => {
                   type="email"
                   required
                   placeholder="e.g. nuwan@greenwaypharmacy.lk"
-                  value={newEmail}
-                  onChange={(e) => setNewEmail(e.target.value)}
+                  value={newUserEmail}
+                  onChange={(e) => setNewUserEmail(e.target.value)}
                   className="w-full px-3.5 py-2 text-xs bg-white border border-gray-300 rounded-xl focus:outline-hidden focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600"
                 />
               </div>
@@ -967,9 +1072,9 @@ export const SettingsPage: React.FC = () => {
                   type="password"
                   required
                   minLength={8}
-                  placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022"
+                  value={newUserPassword}
+                  onChange={(e) => setNewUserPassword(e.target.value)}
                   className="w-full px-3.5 py-2 text-xs bg-white border border-gray-300 rounded-xl focus:outline-hidden focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600"
                 />
               </div>
@@ -979,8 +1084,8 @@ export const SettingsPage: React.FC = () => {
                   Pharmacy Role
                 </label>
                 <select
-                  value={newRole}
-                  onChange={(e) => setNewRole(e.target.value as 'PHARMACIST' | 'STAFF' | 'VERIFIER' | 'ADMIN')}
+                  value={newUserRole}
+                  onChange={(e) => setNewUserRole(e.target.value as 'PHARMACIST' | 'STAFF' | 'VERIFIER' | 'ADMIN')}
                   className="w-full px-3.5 py-2 text-xs bg-white border border-gray-300 rounded-xl focus:outline-hidden focus:border-emerald-600"
                 >
                   <option value="PHARMACIST">Pharmacist (Dispensing, Catalog & Approvals)</option>
@@ -1012,51 +1117,147 @@ export const SettingsPage: React.FC = () => {
       )}
 
       {/* ========================================================= */}
+      {/* MODAL: EDIT USER ROLE                                     */}
+      {/* ========================================================= */}
+      {editingUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 animate-in fade-in">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-gray-100 space-y-4">
+            <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">Edit Member Role</h3>
+                <p className="text-xs text-gray-500">Update role assignments and permissions for this staff member.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditingUser(null)}
+                className="text-gray-400 hover:text-gray-700 text-lg font-bold p-1 cursor-pointer"
+              >
+                \u2715
+              </button>
+            </div>
+
+            {editRoleError && (
+              <div className="p-2.5 rounded-xl bg-red-50 border border-red-200 text-xs text-red-700 font-medium">
+                {editRoleError}
+              </div>
+            )}
+
+            <form onSubmit={handleUpdateRole} className="space-y-4">
+              <div className="p-3 bg-gray-50 rounded-xl space-y-1">
+                <p className="text-xs font-semibold text-gray-900">{editingUser.user?.fullName}</p>
+                <p className="text-xs text-gray-500">{editingUser.user?.email}</p>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">
+                  Assigned Role
+                </label>
+                <select
+                  value={editRole}
+                  onChange={(e) => setEditRole(e.target.value as 'PHARMACIST' | 'STAFF' | 'VERIFIER' | 'ADMIN')}
+                  className="w-full px-3.5 py-2.5 text-xs bg-white border border-gray-300 rounded-xl focus:outline-hidden focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600"
+                >
+                  <option value="PHARMACIST">Pharmacist (Dispensing, Catalog & Approvals)</option>
+                  <option value="STAFF">Staff (Sales Counter & Catalog Lookup)</option>
+                  <option value="VERIFIER">Verifier (GRN & Quality Verification)</option>
+                  <option value="ADMIN">Admin / Owner (Full Pharmacy Authority)</option>
+                </select>
+                <p className="text-[11px] text-gray-400 mt-1">
+                  Changing roles will immediately update their navigation and permission gates upon next request.
+                </p>
+              </div>
+
+              <div className="pt-3 flex items-center justify-end gap-3 border-t border-gray-100">
+                <button
+                  type="button"
+                  onClick={() => setEditingUser(null)}
+                  className="px-4 py-2 text-xs font-medium text-gray-600 hover:text-gray-900 cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={editRoleLoading}
+                  className="px-5 py-2 rounded-xl text-xs font-semibold text-white bg-[#0a5c40] hover:bg-[#084b34] transition cursor-pointer disabled:opacity-50"
+                >
+                  {editRoleLoading ? 'Saving...' : 'Save Role'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================= */}
       {/* MODAL: CHANGE PASSWORD                                    */}
       {/* ========================================================= */}
       {showPasswordModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 animate-in fade-in">
           <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-gray-100 space-y-4">
-            <h3 className="text-base font-bold text-gray-900">Change Password</h3>
-            <p className="text-xs text-gray-500">
-              Update password for <span className="font-semibold text-gray-800">{user?.email}</span>.
-            </p>
+            <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+              <div>
+                <h3 className="text-base font-bold text-gray-900">Change Password</h3>
+                <p className="text-xs text-gray-500">
+                  Update password for <span className="font-semibold text-gray-800">{user?.email}</span>
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowPasswordModal(false)}
+                className="text-gray-400 hover:text-gray-700 text-lg font-bold p-1 cursor-pointer"
+              >
+                \u2715
+              </button>
+            </div>
 
-            {passwordNotice && (
-              <div className="p-2.5 rounded-xl bg-emerald-50 text-emerald-800 text-xs font-medium border border-emerald-200">
-                {passwordNotice}
+            {passwordError && (
+              <div className="p-2.5 rounded-xl bg-red-50 border border-red-200 text-xs text-red-700 font-medium">
+                {passwordError}
               </div>
             )}
 
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                setPasswordNotice('Password reset request logged in audit trail.');
-                setTimeout(() => {
-                  setPasswordNotice(null);
-                  setShowPasswordModal(false);
-                }, 1500);
-              }}
-              className="space-y-3"
-            >
+            {passwordSuccess && (
+              <div className="p-2.5 rounded-xl bg-emerald-50 text-emerald-800 text-xs font-medium border border-emerald-200">
+                {passwordSuccess}
+              </div>
+            )}
+
+            <form onSubmit={handleChangePassword} className="space-y-3">
               <div>
                 <label className="block text-xs font-medium text-gray-700 mb-1">Current Password</label>
                 <input
                   type="password"
                   required
-                  placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
-                  className="w-full px-3 py-2 text-xs border border-gray-300 rounded-xl focus:outline-hidden focus:border-emerald-600"
+                  placeholder="\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022"
+                  value={pwdCurrent}
+                  onChange={(e) => setPwdCurrent(e.target.value)}
+                  className="w-full px-3 py-2 text-xs border border-gray-300 rounded-xl focus:outline-hidden focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">New Password</label>
+                <label className="block text-xs font-medium text-gray-700 mb-1">New Password (min 8 chars)</label>
                 <input
                   type="password"
                   required
                   minLength={8}
-                  placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
-                  className="w-full px-3 py-2 text-xs border border-gray-300 rounded-xl focus:outline-hidden focus:border-emerald-600"
+                  placeholder="\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022"
+                  value={pwdNew}
+                  onChange={(e) => setPwdNew(e.target.value)}
+                  className="w-full px-3 py-2 text-xs border border-gray-300 rounded-xl focus:outline-hidden focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Confirm New Password</label>
+                <input
+                  type="password"
+                  required
+                  minLength={8}
+                  placeholder="\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022"
+                  value={pwdConfirm}
+                  onChange={(e) => setPwdConfirm(e.target.value)}
+                  className="w-full px-3 py-2 text-xs border border-gray-300 rounded-xl focus:outline-hidden focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600"
                 />
               </div>
 
@@ -1064,15 +1265,16 @@ export const SettingsPage: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setShowPasswordModal(false)}
-                  className="px-3 py-1.5 text-xs text-gray-500 hover:text-gray-800"
+                  className="px-3 py-1.5 text-xs text-gray-500 hover:text-gray-800 cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-1.5 bg-[#0a5c40] text-white text-xs font-semibold rounded-xl hover:bg-[#084b34]"
+                  disabled={passwordLoading}
+                  className="px-4 py-1.5 bg-[#0a5c40] text-white text-xs font-semibold rounded-xl hover:bg-[#084b34] cursor-pointer disabled:opacity-50"
                 >
-                  Update
+                  {passwordLoading ? 'Updating...' : 'Update Password'}
                 </button>
               </div>
             </form>
@@ -1085,4 +1287,3 @@ export const SettingsPage: React.FC = () => {
 };
 
 export default SettingsPage;
-
