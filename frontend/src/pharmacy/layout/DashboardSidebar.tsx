@@ -9,6 +9,8 @@ import {
   InventoryIcon,
   PurchasingIcon,
   TransactionsIcon,
+  ReturnsIcon,
+  SalesIcon,
   AlertsIcon,
   CommunityDemandIcon,
   SafetyNoticesIcon,
@@ -28,12 +30,14 @@ interface DashboardSidebarProps {
   onSignOut?: () => void;
 }
 
+type RoleKey = 'ADMIN' | 'PHARMACIST' | 'STAFF' | 'VERIFIER';
+
 interface NavItem {
   title: string;
   path: string;
   icon: React.FC<{ className?: string }>;
   owner: string;
-  requiredPermissions: string[];
+  allowedRoles: RoleKey[];
 }
 
 export const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
@@ -46,31 +50,121 @@ export const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
   pharmacyName = 'Greenway Community Pharmacy',
   onSignOut
 }) => {
-  const { currentPharmacy, hasPermission } = useAuth();
+  const { currentPharmacy } = useAuth();
 
-  const userRole = currentPharmacy?.role?.toUpperCase() || user.role?.toUpperCase();
+  const rawRole = (currentPharmacy?.role || user.role || 'STAFF').toUpperCase();
   const permissions = currentPharmacy?.permissions || [];
-  const isAdmin = userRole === 'ADMIN' || permissions.includes('*');
+  const isAdmin = rawRole === 'ADMIN' || rawRole === 'OWNER' || permissions.includes('*');
 
+  // Normalize into standard roles: ADMIN, PHARMACIST, STAFF, VERIFIER
+  const normalizedRole: RoleKey = isAdmin
+    ? 'ADMIN'
+    : rawRole.includes('PHARMACIST')
+    ? 'PHARMACIST'
+    : rawRole.includes('VERIFIER')
+    ? 'VERIFIER'
+    : 'STAFF';
+
+  /**
+   * Sidebar navigation matrix based on AidFast specification:
+   * Module / Link       Admin   Pharmacist   Staff   Verifier
+   * Dashboard             ✓         ✓          ✓        ✓
+   * Medicines             ✓         ✓          ✓        ✓
+   * Inventory             ✓         ✓          ✓        ✓
+   * Purchasing            ✓         ✓          ✓        ✓
+   * Transactions          ✓         ✓          ✓        ✓
+   * Returns               ✓         ✓          ✓        ✓
+   * Sales                 ✓         ✓          ✓        —
+   * Expiry Alerts         ✓         ✓          ✓        ✓
+   * Community Demand      ✓         ✓          ✓        ✓
+   * Safety Notices        ✓         ✓          ✓        ✓
+   * Reports               ✓         ✓          ✓        ✓
+   * Settings              ✓         —          —        —
+   */
   const allManagementNav: NavItem[] = [
-  { title: 'Medicines', path: '/dashboard/medicines', icon: MedicinesIcon, owner: 'M2', requiredPermissions: ['catalog:read'] },
-  { title: 'Inventory', path: '/dashboard/inventory', icon: InventoryIcon, owner: 'M2', requiredPermissions: ['inventory:read'] },
-  { title: 'Purchasing', path: '/dashboard/purchasing', icon: PurchasingIcon, owner: 'M3', requiredPermissions: ['grn:read', 'po:read', 'suppliers:read'] },
-  { title: 'Transactions', path: '/dashboard/transactions', icon: TransactionsIcon, owner: 'M4', requiredPermissions: ['sales:read'] },
-  { title: 'Returns', path: '/dashboard/returns', icon: TransactionsIcon, owner: 'M4', requiredPermissions: ['returns:read'] },
-  { title: 'Sales', path: '/dashboard/sales', icon: TransactionsIcon, owner: 'M4', requiredPermissions: ['sales:create', 'sales:read'] },
+    {
+      title: 'Medicines',
+      path: '/dashboard/medicines',
+      icon: MedicinesIcon,
+      owner: 'M2',
+      allowedRoles: ['ADMIN', 'PHARMACIST', 'STAFF', 'VERIFIER']
+    },
+    {
+      title: 'Inventory',
+      path: '/dashboard/inventory',
+      icon: InventoryIcon,
+      owner: 'M2',
+      allowedRoles: ['ADMIN', 'PHARMACIST', 'STAFF', 'VERIFIER']
+    },
+    {
+      title: 'Purchasing',
+      path: '/dashboard/purchasing',
+      icon: PurchasingIcon,
+      owner: 'M3',
+      allowedRoles: ['ADMIN', 'PHARMACIST', 'STAFF', 'VERIFIER']
+    },
+    {
+      title: 'Transactions',
+      path: '/dashboard/transactions',
+      icon: TransactionsIcon,
+      owner: 'M4',
+      allowedRoles: ['ADMIN', 'PHARMACIST', 'STAFF', 'VERIFIER']
+    },
+    {
+      title: 'Returns',
+      path: '/dashboard/returns',
+      icon: ReturnsIcon,
+      owner: 'M4',
+      allowedRoles: ['ADMIN', 'PHARMACIST', 'STAFF', 'VERIFIER']
+    },
+    {
+      title: 'Sales',
+      path: '/dashboard/sales',
+      icon: SalesIcon,
+      owner: 'M4',
+      allowedRoles: ['ADMIN', 'PHARMACIST', 'STAFF'] // Verifier excluded per specification
+    },
+    {
+      title: 'Expiry Alerts',
+      path: '/dashboard/alerts',
+      icon: AlertsIcon,
+      owner: 'M5',
+      allowedRoles: ['ADMIN', 'PHARMACIST', 'STAFF', 'VERIFIER']
+    },
+    {
+      title: 'Community Demand',
+      path: '/dashboard/community-demand',
+      icon: CommunityDemandIcon,
+      owner: 'M5/M6',
+      allowedRoles: ['ADMIN', 'PHARMACIST', 'STAFF', 'VERIFIER']
+    },
+    {
+      title: 'Safety Notices',
+      path: '/dashboard/safety-notices',
+      icon: SafetyNoticesIcon,
+      owner: 'M5',
+      allowedRoles: ['ADMIN', 'PHARMACIST', 'STAFF', 'VERIFIER']
+    },
+    {
+      title: 'Reports',
+      path: '/dashboard/reports',
+      icon: ReportsIcon,
+      owner: 'M5',
+      allowedRoles: ['ADMIN', 'PHARMACIST', 'STAFF', 'VERIFIER']
+    },
+    {
+      title: 'Settings',
+      path: '/dashboard/settings',
+      icon: SettingsIcon,
+      owner: 'M1',
+      allowedRoles: ['ADMIN'] // Admin/Owner only per specification
+    }
+  ];
 
-  { title: 'Alerts', path: '/dashboard/alerts', icon: AlertsIcon, owner: 'M5', requiredPermissions: ['alerts:read'] },
-  { title: 'Expiry & Stock Alerts', path: '/dashboard/expiry-stock-alerts', icon: AlertsIcon, owner: 'M5', requiredPermissions: ['alerts:read'] },
-
-  { title: 'Community Demand', path: '/dashboard/community-demand', icon: CommunityDemandIcon, owner: 'M5/M6', requiredPermissions: ['requests:read'] },
-{ title: 'Safety Notices', path: '/dashboard/safety-notices', icon: SafetyNoticesIcon, owner: 'M5', requiredPermissions: [] },  { title: 'Reports', path: '/dashboard/reports', icon: ReportsIcon, owner: 'M5', requiredPermissions: ['reports:read'] },
-  { title: 'Settings', path: '/dashboard/settings', icon: SettingsIcon, owner: 'M1', requiredPermissions: ['pharmacy:settings', 'users:read'] }
-];
-  // Dynamic role-based filtering based on tenant permissions
+  // Role-based filtering matching exact matrix
   const visibleNav = allManagementNav.filter((item) => {
     if (isAdmin) return true;
-    return item.requiredPermissions.some((perm) => hasPermission(perm));
+    return item.allowedRoles.includes(normalizedRole);
   });
 
   const getNavLinkClass = ({ isActive }: { isActive: boolean }) =>

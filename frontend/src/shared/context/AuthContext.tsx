@@ -10,6 +10,44 @@ const STORAGE_KEYS = {
   PHARMACIES: 'aidfast_pharmacies'
 };
 
+const ROLE_PERMISSIONS_FALLBACK: Record<string, string[]> = {
+  ADMIN: ['*'],
+  OWNER: ['*'],
+  PHARMACIST: [
+    'catalog:read', 'catalog:create', 'catalog:update',
+    'inventory:read', 'inventory:adjust',
+    'grn:read', 'grn:create', 'grn:submit', 'suppliers:read', 'po:read',
+    'sales:read', 'sales:create',
+    'returns:read', 'returns:create', 'returns:approve',
+    'alerts:read',
+    'requests:read', 'requests:respond',
+    'safety:read', 'safety:create', 'safety:verify',
+    'reports:read'
+  ],
+  STAFF: [
+    'catalog:read',
+    'inventory:read',
+    'grn:read', 'grn:create', 'suppliers:read', 'po:read',
+    'sales:read', 'sales:create',
+    'returns:read', 'returns:create',
+    'alerts:read',
+    'requests:read',
+    'safety:read',
+    'reports:read'
+  ],
+  VERIFIER: [
+    'catalog:read',
+    'inventory:read',
+    'grn:read', 'grn:verify', 'suppliers:read', 'po:read',
+    'sales:read',
+    'returns:read',
+    'alerts:read',
+    'requests:read',
+    'safety:read', 'safety:verify',
+    'reports:read'
+  ]
+};
+
 const getInitialAuthState = (): AuthState => {
   try {
     const storedToken = localStorage.getItem(STORAGE_KEYS.TOKEN);
@@ -198,11 +236,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const hasPermission = (permission: string): boolean => {
     if (!state.currentPharmacy) return false;
     const permissions = state.currentPharmacy.permissions || [];
-    const role = state.currentPharmacy.role?.toUpperCase();
-    if (role === 'ADMIN' || permissions.includes('*')) {
+    const rawRole = (state.currentPharmacy.role || state.user?.role || '').toUpperCase();
+
+    // Admin / Owner or wildcard has full access
+    if (rawRole === 'ADMIN' || rawRole === 'OWNER' || permissions.includes('*')) {
       return true;
     }
-    return permissions.includes(permission);
+
+    // Direct match from server session permissions
+    if (permissions.includes(permission)) {
+      return true;
+    }
+
+    // RBAC matrix fallback based on role
+    const normalizedRole = rawRole.includes('PHARMACIST')
+      ? 'PHARMACIST'
+      : rawRole.includes('VERIFIER')
+      ? 'VERIFIER'
+      : rawRole.includes('STAFF')
+      ? 'STAFF'
+      : rawRole;
+
+    const rolePerms = ROLE_PERMISSIONS_FALLBACK[normalizedRole] || [];
+    return rolePerms.includes(permission);
   };
 
 
