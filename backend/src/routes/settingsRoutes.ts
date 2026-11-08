@@ -18,7 +18,7 @@ router.get(
     '/',
     authenticate,
     requireSelectedPharmacy,
-    requirePermission('pharmacy:settings'),
+    requirePermission(['pharmacy:settings', 'pharmacy:settings:read']),
     getSettings
 );
 

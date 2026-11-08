@@ -22,6 +22,19 @@ interface StaffUser {
 export const SettingsPage: React.FC = () => {
   const { user, currentPharmacy } = useAuth();
 
+  // Role permissions check:
+  // Admin and Pharmacist have full management access (RCU).
+  // Staff and Verifier have read-only access (R).
+  const userRole = (currentPharmacy?.role || user?.role || 'STAFF').toUpperCase();
+  const isAdminOrPharmacist =
+    userRole === 'ADMIN' ||
+    userRole === 'OWNER' ||
+    userRole.includes('PHARMACIST') ||
+    currentPharmacy?.permissions?.includes('*') ||
+    currentPharmacy?.permissions?.includes('pharmacy:settings');
+
+  const isReadOnly = !isAdminOrPharmacist;
+
   // Active Tab
   const [activeTab, setActiveTab] = useState<'settings' | 'users'>('settings');
 
@@ -175,6 +188,11 @@ export const SettingsPage: React.FC = () => {
   // Save Settings Handler
   const handleSaveSettings = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
+    if (isReadOnly) {
+      showNotification('error', 'Only Pharmacy Owners and Pharmacists can modify settings.');
+      return;
+    }
+
     setIsSaving(true);
     try {
       const activeAlertMonths: number[] = [];
@@ -213,9 +231,14 @@ export const SettingsPage: React.FC = () => {
     }
   };
 
-  // Add User Handler
+  // Add User Handler (Admin and Pharmacist only)
   const handleAddUser = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isReadOnly) {
+      setAddUserError('Only Pharmacy Owners and Pharmacists can add new staff.');
+      return;
+    }
+
     setAddUserError(null);
 
     if (!newUserFullName.trim() || !newUserEmail.trim() || !newUserPassword) {
@@ -263,15 +286,20 @@ export const SettingsPage: React.FC = () => {
 
   // Open Edit User Role
   const handleOpenEditRole = (u: StaffUser) => {
+    if (isReadOnly) return;
     setEditingUser(u);
     const currRole = (u.role?.name?.toUpperCase() || 'PHARMACIST') as 'PHARMACIST' | 'STAFF' | 'VERIFIER' | 'ADMIN';
     setEditRole(currRole);
     setEditRoleError(null);
   };
 
-  // Update Role Handler
+  // Update Role Handler (Admin and Pharmacist only)
   const handleUpdateRole = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isReadOnly) {
+      setEditRoleError('Only Pharmacy Owners and Pharmacists can update staff roles.');
+      return;
+    }
     if (!editingUser) return;
     setEditRoleLoading(true);
     setEditRoleError(null);
@@ -298,8 +326,13 @@ export const SettingsPage: React.FC = () => {
     }
   };
 
-  // Remove User Handler
+  // Remove User Handler (Admin and Pharmacist only)
   const handleRemoveUser = async (membershipId: string, staffName: string) => {
+    if (isReadOnly) {
+      showNotification('error', 'Only Pharmacy Owners and Pharmacists can remove staff.');
+      return;
+    }
+
     if (!window.confirm(`Are you sure you want to remove ${staffName} from this pharmacy?`)) {
       return;
     }
@@ -321,7 +354,7 @@ export const SettingsPage: React.FC = () => {
     }
   };
 
-  // Change Password Handler
+  // Change Password Handler (Available to ALL authenticated users for their own account)
   const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setPasswordError(null);
@@ -447,14 +480,28 @@ export const SettingsPage: React.FC = () => {
         </p>
       </div>
 
+      {/* Read-Only Notice for Staff & Verifier */}
+      {isReadOnly && (
+        <div className="bg-amber-50/90 border border-amber-200/80 rounded-2xl p-4 text-xs text-amber-900 flex items-center justify-between shadow-xs">
+          <div className="flex items-center gap-2.5">
+            <span className="text-base"></span>
+            <span>
+              <strong>View-Only Settings Access:</strong> You are logged in with <strong>{currentPharmacy?.role || 'Staff'}</strong> role. You can review pharmacy profile details, alert thresholds, and staff directory, but updates are reserved for Pharmacy Owners and Pharmacists.
+            </span>
+          </div>
+          <span className="px-2.5 py-1 bg-amber-100 text-amber-800 rounded-full font-bold text-[10px] uppercase tracking-wide border border-amber-300/60 shrink-0">
+            Read-Only
+          </span>
+        </div>
+      )}
+
       {/* Feedback Banner */}
       {feedback && (
         <div
-          className={`p-3.5 rounded-xl border text-sm flex items-center justify-between transition-all ${
-            feedback.type === 'success'
+          className={`p-3.5 rounded-xl border text-sm flex items-center justify-between transition-all ${feedback.type === 'success'
               ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
               : 'bg-red-50 text-red-800 border-red-200'
-          }`}
+            }`}
         >
           <div className="flex items-center gap-2">
             <span>{feedback.type === 'success' ? '\u2713' : '\u26A0'}</span>
@@ -475,11 +522,10 @@ export const SettingsPage: React.FC = () => {
         <button
           type="button"
           onClick={() => setActiveTab('settings')}
-          className={`pb-3 text-sm font-semibold transition-colors relative cursor-pointer ${
-            activeTab === 'settings'
+          className={`pb-3 text-sm font-semibold transition-colors relative cursor-pointer ${activeTab === 'settings'
               ? 'text-[#0a5c40] border-b-2 border-[#0a5c40]'
               : 'text-gray-500 hover:text-gray-800'
-          }`}
+            }`}
         >
           Pharmacy & System Settings
         </button>
@@ -487,11 +533,10 @@ export const SettingsPage: React.FC = () => {
         <button
           type="button"
           onClick={() => setActiveTab('users')}
-          className={`pb-3 text-sm font-semibold transition-colors relative flex items-center gap-2 cursor-pointer ${
-            activeTab === 'users'
+          className={`pb-3 text-sm font-semibold transition-colors relative flex items-center gap-2 cursor-pointer ${activeTab === 'users'
               ? 'text-[#0a5c40] border-b-2 border-[#0a5c40]'
               : 'text-gray-500 hover:text-gray-800'
-          }`}
+            }`}
         >
           <span>User Management</span>
           <span className="text-xs bg-emerald-50 text-emerald-800 font-bold px-2 py-0.5 rounded-full border border-emerald-200">
@@ -524,9 +569,13 @@ export const SettingsPage: React.FC = () => {
                   <input
                     id="pharmacyName"
                     type="text"
+                    disabled={isReadOnly}
                     value={pharmacyName}
                     onChange={(e) => setPharmacyName(e.target.value)}
-                    className="w-full px-3.5 py-2.5 text-sm bg-white border border-gray-300 rounded-xl focus:outline-hidden focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 transition"
+                    className={`w-full px-3.5 py-2.5 text-sm rounded-xl transition ${isReadOnly
+                        ? 'bg-gray-50 text-gray-700 cursor-not-allowed border border-gray-200'
+                        : 'bg-white border border-gray-300 focus:outline-hidden focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600'
+                      }`}
                   />
                 </div>
 
@@ -537,9 +586,13 @@ export const SettingsPage: React.FC = () => {
                   <input
                     id="pharmacyAddress"
                     type="text"
+                    disabled={isReadOnly}
                     value={address}
                     onChange={(e) => setAddress(e.target.value)}
-                    className="w-full px-3.5 py-2.5 text-sm bg-white border border-emerald-600 ring-2 ring-emerald-50 rounded-xl focus:outline-hidden transition"
+                    className={`w-full px-3.5 py-2.5 text-sm rounded-xl transition ${isReadOnly
+                        ? 'bg-gray-50 text-gray-700 cursor-not-allowed border border-gray-200'
+                        : 'bg-white border border-emerald-600 ring-2 ring-emerald-50 focus:outline-hidden'
+                      }`}
                   />
                 </div>
 
@@ -551,9 +604,13 @@ export const SettingsPage: React.FC = () => {
                     <input
                       id="phoneNumber"
                       type="text"
+                      disabled={isReadOnly}
                       value={phoneNumber}
                       onChange={(e) => setPhoneNumber(e.target.value)}
-                      className="w-full px-3.5 py-2.5 text-sm bg-white border border-gray-300 rounded-xl focus:outline-hidden focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 transition"
+                      className={`w-full px-3.5 py-2.5 text-sm rounded-xl transition ${isReadOnly
+                          ? 'bg-gray-50 text-gray-700 cursor-not-allowed border border-gray-200'
+                          : 'bg-white border border-gray-300 focus:outline-hidden focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600'
+                        }`}
                     />
                   </div>
 
@@ -564,9 +621,13 @@ export const SettingsPage: React.FC = () => {
                     <input
                       id="pharmacyEmail"
                       type="email"
+                      disabled={isReadOnly}
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      className="w-full px-3.5 py-2.5 text-sm bg-white border border-gray-300 rounded-xl focus:outline-hidden focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 transition"
+                      className={`w-full px-3.5 py-2.5 text-sm rounded-xl transition ${isReadOnly
+                          ? 'bg-gray-50 text-gray-700 cursor-not-allowed border border-gray-200'
+                          : 'bg-white border border-gray-300 focus:outline-hidden focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600'
+                        }`}
                     />
                   </div>
                 </div>
@@ -588,15 +649,14 @@ export const SettingsPage: React.FC = () => {
                   <div className="flex items-center gap-3">
                     <button
                       type="button"
-                      onClick={() => setExpiryAlertEnabled(!expiryAlertEnabled)}
-                      className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full transition-colors duration-200 ease-in-out focus:outline-hidden ${
-                        expiryAlertEnabled ? 'bg-amber-500' : 'bg-gray-300'
-                      }`}
+                      disabled={isReadOnly}
+                      onClick={() => !isReadOnly && setExpiryAlertEnabled(!expiryAlertEnabled)}
+                      className={`relative inline-flex h-5 w-9 shrink-0 rounded-full transition-colors duration-200 ease-in-out focus:outline-hidden ${isReadOnly ? 'cursor-not-allowed opacity-85' : 'cursor-pointer'
+                        } ${expiryAlertEnabled ? 'bg-amber-500' : 'bg-gray-300'}`}
                     >
                       <span
-                        className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition duration-200 ease-in-out mt-0.5 ml-0.5 ${
-                          expiryAlertEnabled ? 'translate-x-4' : 'translate-x-0'
-                        }`}
+                        className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition duration-200 ease-in-out mt-0.5 ml-0.5 ${expiryAlertEnabled ? 'translate-x-4' : 'translate-x-0'
+                          }`}
                       />
                     </button>
                     <div>
@@ -616,15 +676,14 @@ export const SettingsPage: React.FC = () => {
                   <div className="flex items-center gap-3">
                     <button
                       type="button"
-                      onClick={() => setExpiryWarningEnabled(!expiryWarningEnabled)}
-                      className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full transition-colors duration-200 ease-in-out focus:outline-hidden ${
-                        expiryWarningEnabled ? 'bg-orange-500' : 'bg-gray-300'
-                      }`}
+                      disabled={isReadOnly}
+                      onClick={() => !isReadOnly && setExpiryWarningEnabled(!expiryWarningEnabled)}
+                      className={`relative inline-flex h-5 w-9 shrink-0 rounded-full transition-colors duration-200 ease-in-out focus:outline-hidden ${isReadOnly ? 'cursor-not-allowed opacity-85' : 'cursor-pointer'
+                        } ${expiryWarningEnabled ? 'bg-orange-500' : 'bg-gray-300'}`}
                     >
                       <span
-                        className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition duration-200 ease-in-out mt-0.5 ml-0.5 ${
-                          expiryWarningEnabled ? 'translate-x-4' : 'translate-x-0'
-                        }`}
+                        className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition duration-200 ease-in-out mt-0.5 ml-0.5 ${expiryWarningEnabled ? 'translate-x-4' : 'translate-x-0'
+                          }`}
                       />
                     </button>
                     <div>
@@ -644,15 +703,14 @@ export const SettingsPage: React.FC = () => {
                   <div className="flex items-center gap-3">
                     <button
                       type="button"
-                      onClick={() => setCriticalExpiryEnabled(!criticalExpiryEnabled)}
-                      className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full transition-colors duration-200 ease-in-out focus:outline-hidden ${
-                        criticalExpiryEnabled ? 'bg-red-500' : 'bg-gray-300'
-                      }`}
+                      disabled={isReadOnly}
+                      onClick={() => !isReadOnly && setCriticalExpiryEnabled(!criticalExpiryEnabled)}
+                      className={`relative inline-flex h-5 w-9 shrink-0 rounded-full transition-colors duration-200 ease-in-out focus:outline-hidden ${isReadOnly ? 'cursor-not-allowed opacity-85' : 'cursor-pointer'
+                        } ${criticalExpiryEnabled ? 'bg-red-500' : 'bg-gray-300'}`}
                     >
                       <span
-                        className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition duration-200 ease-in-out mt-0.5 ml-0.5 ${
-                          criticalExpiryEnabled ? 'translate-x-4' : 'translate-x-0'
-                        }`}
+                        className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition duration-200 ease-in-out mt-0.5 ml-0.5 ${criticalExpiryEnabled ? 'translate-x-4' : 'translate-x-0'
+                          }`}
                       />
                     </button>
                     <div>
@@ -672,15 +730,14 @@ export const SettingsPage: React.FC = () => {
                   <div className="flex items-center gap-3">
                     <button
                       type="button"
-                      onClick={() => setLowStockEnabled(!lowStockEnabled)}
-                      className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full transition-colors duration-200 ease-in-out focus:outline-hidden ${
-                        lowStockEnabled ? 'bg-amber-600' : 'bg-gray-300'
-                      }`}
+                      disabled={isReadOnly}
+                      onClick={() => !isReadOnly && setLowStockEnabled(!lowStockEnabled)}
+                      className={`relative inline-flex h-5 w-9 shrink-0 rounded-full transition-colors duration-200 ease-in-out focus:outline-hidden ${isReadOnly ? 'cursor-not-allowed opacity-85' : 'cursor-pointer'
+                        } ${lowStockEnabled ? 'bg-amber-600' : 'bg-gray-300'}`}
                     >
                       <span
-                        className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition duration-200 ease-in-out mt-0.5 ml-0.5 ${
-                          lowStockEnabled ? 'translate-x-4' : 'translate-x-0'
-                        }`}
+                        className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition duration-200 ease-in-out mt-0.5 ml-0.5 ${lowStockEnabled ? 'translate-x-4' : 'translate-x-0'
+                          }`}
                       />
                     </button>
                     <div>
@@ -694,9 +751,11 @@ export const SettingsPage: React.FC = () => {
                     <input
                       type="number"
                       min={1}
+                      disabled={isReadOnly}
                       value={lowStockThreshold}
                       onChange={(e) => setLowStockThreshold(Number(e.target.value))}
-                      className="w-16 px-2 py-1 text-xs font-semibold text-center border border-amber-300 bg-amber-50/40 text-amber-800 rounded-xl focus:outline-hidden"
+                      className={`w-16 px-2 py-1 text-xs font-semibold text-center border border-amber-300 bg-amber-50/40 text-amber-800 rounded-xl focus:outline-hidden ${isReadOnly ? 'cursor-not-allowed' : ''
+                        }`}
                     />
                     <span className="text-xs text-gray-500 font-medium">units</span>
                   </div>
@@ -778,9 +837,13 @@ export const SettingsPage: React.FC = () => {
                     </label>
                     <select
                       id="systemDateFormat"
+                      disabled={isReadOnly}
                       value={dateFormat}
                       onChange={(e) => setDateFormat(e.target.value)}
-                      className="w-full px-3.5 py-2.5 text-sm bg-white border border-gray-300 rounded-xl focus:outline-hidden focus:border-emerald-600 transition"
+                      className={`w-full px-3.5 py-2.5 text-sm rounded-xl transition ${isReadOnly
+                          ? 'bg-gray-50 text-gray-700 cursor-not-allowed border border-gray-200'
+                          : 'bg-white border border-gray-300 focus:outline-hidden focus:border-emerald-600'
+                        }`}
                     >
                       <option value="DD MMM YYYY">DD MMM YYYY</option>
                       <option value="YYYY-MM-DD">YYYY-MM-DD</option>
@@ -795,9 +858,13 @@ export const SettingsPage: React.FC = () => {
                     </label>
                     <select
                       id="systemCurrency"
+                      disabled={isReadOnly}
                       value={currency}
                       onChange={(e) => setCurrency(e.target.value)}
-                      className="w-full px-3.5 py-2.5 text-sm bg-white border border-gray-300 rounded-xl focus:outline-hidden focus:border-emerald-600 transition"
+                      className={`w-full px-3.5 py-2.5 text-sm rounded-xl transition ${isReadOnly
+                          ? 'bg-gray-50 text-gray-700 cursor-not-allowed border border-gray-200'
+                          : 'bg-white border border-gray-300 focus:outline-hidden focus:border-emerald-600'
+                        }`}
                     >
                       <option value="LKR \u2014 Sri Lankan Rupee">LKR \u2014 Sri Lankan Rupee</option>
                       <option value="USD \u2014 US Dollar">USD \u2014 US Dollar</option>
@@ -811,30 +878,38 @@ export const SettingsPage: React.FC = () => {
 
           </div>
 
-          {/* Bottom Actions Bar matching Figma */}
-          <div className="flex items-center justify-end gap-4 pt-4">
-            <button
-              type="button"
-              onClick={loadData}
-              disabled={isSaving}
-              className="text-sm font-medium text-gray-600 hover:text-gray-900 transition cursor-pointer"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={isSaving}
-              className="px-6 py-2.5 rounded-xl text-sm font-semibold text-white bg-[#0a5c40] hover:bg-[#084b34] transition shadow-xs flex items-center gap-2 cursor-pointer disabled:opacity-50"
-            >
-              {isSaving ? (
-                <>
-                  <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  <span>Saving...</span>
-                </>
-              ) : (
-                <span>Save Changes</span>
-              )}
-            </button>
+          {/* Bottom Actions Bar */}
+          <div className="flex items-center justify-end gap-4 pt-4 border-t border-gray-100">
+            {isReadOnly ? (
+              <span className="text-xs text-gray-400 font-medium italic">
+                Pharmacy configuration editing is restricted to Owners and Pharmacists
+              </span>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  onClick={loadData}
+                  disabled={isSaving}
+                  className="text-sm font-medium text-gray-600 hover:text-gray-900 transition cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSaving}
+                  className="px-6 py-2.5 rounded-xl text-sm font-semibold text-white bg-[#0a5c40] hover:bg-[#084b34] transition shadow-xs flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                >
+                  {isSaving ? (
+                    <>
+                      <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      <span>Saving...</span>
+                    </>
+                  ) : (
+                    <span>Save Changes</span>
+                  )}
+                </button>
+              </>
+            )}
           </div>
         </form>
       )}
@@ -850,39 +925,36 @@ export const SettingsPage: React.FC = () => {
             <button
               type="button"
               onClick={() => setUserFilter('all')}
-              className={`text-xs font-semibold transition cursor-pointer pb-2 relative ${
-                userFilter === 'all'
+              className={`text-xs font-semibold transition cursor-pointer pb-2 relative ${userFilter === 'all'
                   ? 'text-[#0a5c40] after:content-[""] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-[2px] after:bg-[#0a5c40]'
                   : 'text-gray-500 hover:text-gray-800'
-              }`}
+                }`}
             >
               All Users ({users.length})
             </button>
             <button
               type="button"
               onClick={() => setUserFilter('active')}
-              className={`text-xs font-semibold transition cursor-pointer pb-2 relative ${
-                userFilter === 'active'
+              className={`text-xs font-semibold transition cursor-pointer pb-2 relative ${userFilter === 'active'
                   ? 'text-[#0a5c40] after:content-[""] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-[2px] after:bg-[#0a5c40]'
                   : 'text-gray-500 hover:text-gray-800'
-              }`}
+                }`}
             >
               Active ({activeCount})
             </button>
             <button
               type="button"
               onClick={() => setUserFilter('inactive')}
-              className={`text-xs font-semibold transition cursor-pointer pb-2 relative ${
-                userFilter === 'inactive'
+              className={`text-xs font-semibold transition cursor-pointer pb-2 relative ${userFilter === 'inactive'
                   ? 'text-[#0a5c40] after:content-[""] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-[2px] after:bg-[#0a5c40]'
                   : 'text-gray-500 hover:text-gray-800'
-              }`}
+                }`}
             >
               Inactive ({inactiveCount})
             </button>
           </div>
 
-          {/* Toolbar: Search input + Add User button */}
+          {/* Toolbar: Search input + Add User button (Admin & Pharmacist only) */}
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="relative w-full sm:max-w-md">
               <SearchIcon className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -895,14 +967,16 @@ export const SettingsPage: React.FC = () => {
               />
             </div>
 
-            <button
-              type="button"
-              onClick={() => setShowAddModal(true)}
-              className="w-full sm:w-auto px-4 py-2.5 rounded-xl text-xs font-semibold text-white bg-[#0a5c40] hover:bg-[#084b34] transition flex items-center justify-center gap-1.5 shadow-xs cursor-pointer"
-            >
-              <PlusIcon className="w-4 h-4" />
-              <span>Add User</span>
-            </button>
+            {isAdminOrPharmacist && (
+              <button
+                type="button"
+                onClick={() => setShowAddModal(true)}
+                className="w-full sm:w-auto px-4 py-2.5 rounded-xl text-xs font-semibold text-white bg-[#0a5c40] hover:bg-[#084b34] transition flex items-center justify-center gap-1.5 shadow-xs cursor-pointer"
+              >
+                <PlusIcon className="w-4 h-4" />
+                <span>Add User</span>
+              </button>
+            )}
           </div>
 
           {/* Staff Table matching Figma Screen 2 */}
@@ -960,7 +1034,9 @@ export const SettingsPage: React.FC = () => {
                           </div>
                         </td>
                         <td className="py-3.5 px-4 text-right">
-                          {isOwner ? (
+                          {isReadOnly ? (
+                            <span className="text-gray-400 font-medium">View only</span>
+                          ) : isOwner ? (
                             <span className="text-gray-400 font-medium">Owner</span>
                           ) : (
                             <div className="flex items-center justify-end gap-3">
@@ -991,28 +1067,36 @@ export const SettingsPage: React.FC = () => {
 
           {/* Bottom Actions Bar */}
           <div className="flex items-center justify-end gap-4 pt-4 border-t border-gray-100">
-            <button
-              type="button"
-              onClick={loadData}
-              className="text-sm font-medium text-gray-600 hover:text-gray-900 transition cursor-pointer"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              onClick={() => showNotification('success', 'User list up to date.')}
-              className="px-6 py-2.5 rounded-xl text-sm font-semibold text-white bg-[#0a5c40] hover:bg-[#084b34] transition shadow-xs cursor-pointer"
-            >
-              Save Changes
-            </button>
+            {isReadOnly ? (
+              <span className="text-xs text-gray-400 font-medium italic">
+                Staff member management is restricted to Owners and Pharmacists
+              </span>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  onClick={loadData}
+                  className="text-sm font-medium text-gray-600 hover:text-gray-900 transition cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => showNotification('success', 'User list up to date.')}
+                  className="px-6 py-2.5 rounded-xl text-sm font-semibold text-white bg-[#0a5c40] hover:bg-[#084b34] transition shadow-xs cursor-pointer"
+                >
+                  Save Changes
+                </button>
+              </>
+            )}
           </div>
         </div>
       )}
 
       {/* ========================================================= */}
-      {/* MODAL: ADD NEW STAFF USER                                 */}
+      {/* MODAL: ADD NEW STAFF USER (Admin & Pharmacist only)       */}
       {/* ========================================================= */}
-      {showAddModal && (
+      {showAddModal && isAdminOrPharmacist && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 animate-in fade-in">
           <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-gray-100 space-y-4">
             <div className="flex items-center justify-between border-b border-gray-100 pb-3">
@@ -1117,9 +1201,9 @@ export const SettingsPage: React.FC = () => {
       )}
 
       {/* ========================================================= */}
-      {/* MODAL: EDIT USER ROLE                                     */}
+      {/* MODAL: EDIT USER ROLE (Admin & Pharmacist only)          */}
       {/* ========================================================= */}
-      {editingUser && (
+      {editingUser && isAdminOrPharmacist && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 animate-in fade-in">
           <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-gray-100 space-y-4">
             <div className="flex items-center justify-between border-b border-gray-100 pb-3">
@@ -1189,7 +1273,7 @@ export const SettingsPage: React.FC = () => {
       )}
 
       {/* ========================================================= */}
-      {/* MODAL: CHANGE PASSWORD                                    */}
+      {/* MODAL: CHANGE PASSWORD (Available to all roles for self)  */}
       {/* ========================================================= */}
       {showPasswordModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 animate-in fade-in">

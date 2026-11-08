@@ -14,6 +14,8 @@ const ROLE_PERMISSIONS_FALLBACK: Record<string, string[]> = {
   ADMIN: ['*'],
   OWNER: ['*'],
   PHARMACIST: [
+    'pharmacy:settings', 'pharmacy:settings:read',
+    'users:read', 'users:create', 'users:update', 'users:delete',
     'catalog:read', 'catalog:create', 'catalog:update',
     'inventory:read', 'inventory:adjust',
     'grn:read', 'grn:create', 'grn:submit', 'suppliers:read', 'po:read',
@@ -25,6 +27,8 @@ const ROLE_PERMISSIONS_FALLBACK: Record<string, string[]> = {
     'reports:read'
   ],
   STAFF: [
+    'pharmacy:settings:read',
+    'users:read',
     'catalog:read',
     'inventory:read',
     'grn:read', 'grn:create', 'suppliers:read', 'po:read',
@@ -36,6 +40,8 @@ const ROLE_PERMISSIONS_FALLBACK: Record<string, string[]> = {
     'reports:read'
   ],
   VERIFIER: [
+    'pharmacy:settings:read',
+    'users:read',
     'catalog:read',
     'inventory:read',
     'grn:read', 'grn:verify', 'suppliers:read', 'po:read',
@@ -43,7 +49,8 @@ const ROLE_PERMISSIONS_FALLBACK: Record<string, string[]> = {
     'returns:read',
     'alerts:read',
     'requests:read',
-    'safety:read', 'safety:verify',
+    'safety:read',
+    'safety:verify',
     'reports:read'
   ]
 };
