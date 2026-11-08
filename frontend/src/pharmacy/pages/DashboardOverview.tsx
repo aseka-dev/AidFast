@@ -64,15 +64,26 @@ const td = 'border-t border-[#e2e8e3] px-2 py-3.5 align-middle';
 function Donut({ total }: { total: number }) {
     const r = 70;
     const c = 2 * Math.PI * r;
-    let offset = 0;
+
     return (
         <svg viewBox="0 0 180 180" className="h-44 w-44 shrink-0" role="img" aria-label="Stock status distribution">
             <g transform="rotate(-90 90 90)">
-                {SLICES.map((s) => {
+                {SLICES.map((s, idx) => {
                     const len = (s.pct / 100) * c;
-                    const el = <circle key={s.label} cx="90" cy="90" r={r} fill="none" stroke={s.color} strokeWidth="22" strokeDasharray={`${len} ${c - len}`} strokeDashoffset={-offset} />;
-                    offset += len;
-                    return el;
+                    const offset = SLICES.slice(0, idx).reduce((acc, curr) => acc + (curr.pct / 100) * c, 0);
+                    return (
+                        <circle
+                            key={s.label}
+                            cx="90"
+                            cy="90"
+                            r={r}
+                            fill="none"
+                            stroke={s.color}
+                            strokeWidth="22"
+                            strokeDasharray={`${len} ${c - len}`}
+                            strokeDashoffset={-offset}
+                        />
+                    );
                 })}
             </g>
             <text x="90" y="92" textAnchor="middle" fontSize="24" fontWeight="700" fill="#14291d">{total.toLocaleString()}</text>
