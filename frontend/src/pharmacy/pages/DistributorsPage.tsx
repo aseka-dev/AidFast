@@ -16,19 +16,18 @@ interface Supplier {
 
 
 
-const DistributorsPage: React.FC = () => {
-  const auth = useAuth();
-  const pharmacyId =
-    auth.currentPharmacy?.pharmacyId;
+const DistributorDirectory: React.FC<{ pharmacyId?: string }> = ({ pharmacyId }) => {
 
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(Boolean(pharmacyId));
   const [error, setError] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
   const [selected, setSelected] = useState<Supplier | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [success, setSuccess] = useState('');
 
   const [form, setForm] = useState({
     supplierName: '',
@@ -48,6 +47,7 @@ const DistributorsPage: React.FC = () => {
       return;
     }
 
+    setLoading(true);
     try {
       const response = await authenticatedFetch(endpoint, {
         credentials: 'omit'
@@ -75,6 +75,7 @@ const DistributorsPage: React.FC = () => {
       }
 
       setSuppliers(records);
+      setPage(1);
       setError('');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Request failed.');
@@ -152,8 +153,8 @@ const DistributorsPage: React.FC = () => {
     setError('');
 
     try {
-      const response = await authenticatedFetch(endpoint, {
-        method: 'POST',
+      const response = await authenticatedFetch(editingId ? `${endpoint}/${editingId}` : endpoint, {
+        method: editingId ? 'PUT' : 'POST',
         credentials: 'omit',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form)
@@ -161,13 +162,14 @@ const DistributorsPage: React.FC = () => {
 
       if (!response.ok) {
         throw new Error(
-          response.status === 501
-            ? 'Supplier creation API is not implemented yet.'
-            : `Unable to save distributor (${response.status}).`
+          (await response.json().catch(() => ({}))).message || `Unable to save distributor (${response.status}).`
         );
       }
 
       setShowForm(false);
+      setEditingId(null);
+      setSelected(null);
+      setSuccess(editingId ? 'Distributor updated.' : 'Distributor added.');
       setForm({
         supplierName: '',
         contact: '',
@@ -207,7 +209,13 @@ const DistributorsPage: React.FC = () => {
         </div>
         <button
           type="button"
-          onClick={() => setShowForm(!showForm)}
+          disabled={saving || !pharmacyId}
+          onClick={() => {
+            setEditingId(null);
+            setForm({ supplierName: '', contact: '', email: '', address: '' });
+            setShowForm(!showForm);
+            setSuccess('');
+          }}
           className="rounded-xl bg-emerald-700 px-5 py-3 font-medium text-white"
         >
           {showForm ? 'Cancel' : 'Add Distributor'}
@@ -219,6 +227,8 @@ const DistributorsPage: React.FC = () => {
           {activeError}
         </div>
       )}
+
+      {success && <p role="status" className="text-sm text-emerald-700">{success}</p>}
 
       {showForm && (
         <form onSubmit={saveSupplier} className="grid gap-4 rounded-xl border bg-white p-5 md:grid-cols-2">
@@ -304,7 +314,17 @@ const DistributorsPage: React.FC = () => {
                   <td className="p-4">
                     <button
                       type="button"
-                      onClick={() => setSelected(supplier)}
+                      onClick={async () => {
+                        try {
+                          const response = await authenticatedFetch(`${endpoint}/${supplier._id}`);
+                          const result = await response.json();
+                          if (!response.ok) throw new Error(result.message || 'Unable to load distributor.');
+                          setSelected(result.data);
+                          setError('');
+                        } catch (err) {
+                          setError(err instanceof Error ? err.message : 'Request failed.');
+                        }
+                      }}
                       className="font-medium text-emerald-700 hover:underline"
                     >
                       View
@@ -358,10 +378,24 @@ const DistributorsPage: React.FC = () => {
           <p className="text-sm">Email: {selected.email || '—'}</p>
           <p className="text-sm">Address: {selected.address || '—'}</p>
           <p className="text-sm">Status: {selected.status || '—'}</p>
+          <button type="button" className="mt-3 font-medium text-emerald-700 hover:underline"
+            onClick={() => {
+              setEditingId(selected._id);
+              setForm({ supplierName: selected.supplierName, contact: selected.contact || '', email: selected.email || '', address: selected.address || '' });
+              setShowForm(true);
+              setSuccess('');
+            }}>Edit Distributor</button>
         </div>
       )}
     </div>
   );
+};
+
+const DistributorsPage: React.FC = () => {
+  const { currentPharmacy } = useAuth();
+  const pharmacyId = currentPharmacy?.pharmacyId;
+  // Remount on selection changes so old records, forms, and pending requests stay isolated.
+  return <DistributorDirectory key={pharmacyId || 'none'} pharmacyId={pharmacyId} />;
 };
 
 export default DistributorsPage;

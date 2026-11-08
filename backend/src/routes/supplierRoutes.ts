@@ -1,40 +1,16 @@
-import { Router, Request, Response } from "express";
-
-const router = Router();
-
-router.get("/", (req: Request, res: Response) => {
-  res.status(501).json({
-    success: false,
-    message: "Get suppliers API not implemented yet",
-  });
+import { Router } from 'express';
+import { authenticate, requireSelectedPharmacy } from '../middleware/authMiddleware';
+import matchPharmacyParam from '../middleware/matchPharmacyParam';
+import requirePermission from '../middleware/permissionMiddleware';
+import { listSuppliers, getSupplier, createSupplier, updateSupplier } from '../controllers/purchasingController';
+const router = Router({ mergeParams: true });
+router.use(authenticate, requireSelectedPharmacy, matchPharmacyParam);
+router.get('/', requirePermission('suppliers:read'), listSuppliers);
+router.get('/:id', requirePermission('suppliers:read'), getSupplier);
+router.post('/', requirePermission('suppliers:create'), createSupplier);
+// Supplier maintenance shares the existing suppliers:create permission.
+router.put('/:id', requirePermission('suppliers:create'), updateSupplier);
+router.patch('/:id/deactivate', requirePermission('suppliers:create'), (_req, res) => {
+  res.status(501).json({ success: false, message: 'Deactivate supplier API not implemented yet' });
 });
-
-router.get("/:id", (req: Request, res: Response) => {
-  res.status(501).json({
-    success: false,
-    message: "Get supplier API not implemented yet",
-  });
-});
-
-router.post("/", (req: Request, res: Response) => {
-  res.status(501).json({
-    success: false,
-    message: "Create supplier API not implemented yet",
-  });
-});
-
-router.put("/:id", (req: Request, res: Response) => {
-  res.status(501).json({
-    success: false,
-    message: "Update supplier API not implemented yet",
-  });
-});
-
-router.patch("/:id/deactivate", (req: Request, res: Response) => {
-  res.status(501).json({
-    success: false,
-    message: "Deactivate supplier API not implemented yet",
-  });
-});
-
 export default router;

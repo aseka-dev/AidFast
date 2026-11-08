@@ -12,6 +12,7 @@ import settingsRoutes from './routes/settingsRoutes';
 import userRoutes from './routes/userRoutes';
 
 import supplierRoutes from './routes/supplierRoutes';
+import purchaseOrderRoutes from './routes/purchaseOrderRoutes';
 import grnRoutes from './routes/grnRoutes';
 
 import medicineRequestRoutes from './routes/medicineRequestRoutes';
@@ -90,6 +91,8 @@ app.use(
     '/api/v1/pharmacies/:pharmacyId/suppliers',
     supplierRoutes
 );
+
+app.use('/api/v1/pharmacies/:pharmacyId/purchase-orders', purchaseOrderRoutes);
 
 // GRN API
 app.use(

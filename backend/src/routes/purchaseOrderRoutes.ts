@@ -1,0 +1,11 @@
+import { Router } from 'express';
+import { authenticate, requireSelectedPharmacy } from '../middleware/authMiddleware';
+import matchPharmacyParam from '../middleware/matchPharmacyParam';
+import requirePermission from '../middleware/permissionMiddleware';
+import { listPurchaseOrders, getPurchaseOrder, createPurchaseOrder } from '../controllers/purchasingController';
+const router = Router({ mergeParams: true });
+router.use(authenticate, requireSelectedPharmacy, matchPharmacyParam);
+router.get('/', requirePermission('po:read'), listPurchaseOrders);
+router.get('/:id', requirePermission('po:read'), getPurchaseOrder);
+router.post('/', requirePermission('po:create'), createPurchaseOrder);
+export default router;
