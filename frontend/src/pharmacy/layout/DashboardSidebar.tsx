@@ -157,7 +157,7 @@ export const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
       path: '/dashboard/settings',
       icon: SettingsIcon,
       owner: 'M1',
-      allowedRoles: ['ADMIN'] // Admin/Owner only per specification
+      allowedRoles: ['ADMIN', 'PHARMACIST', 'STAFF', 'VERIFIER']
     }
   ];
 

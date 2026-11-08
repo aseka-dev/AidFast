@@ -231,7 +231,7 @@ export const App: React.FC = () => {
                 <Route
                   path="settings"
                   element={
-                    <ProtectedRoute requiredPermission="pharmacy:settings">
+                    <ProtectedRoute requiredPermission="pharmacy:settings:read">
                       <SettingsPage />
                     </ProtectedRoute>
                   }

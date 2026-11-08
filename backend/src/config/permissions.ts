@@ -10,6 +10,7 @@ export const PERMISSIONS = {
   USERS_UPDATE: 'users:update',
   USERS_DELETE: 'users:delete',
   SETTINGS_MANAGE: 'pharmacy:settings',
+  SETTINGS_READ: 'pharmacy:settings:read',
 
   // Catalog & Inventory (Member 2)
   CATALOG_READ: 'catalog:read',
@@ -61,9 +62,14 @@ export const ROLE_PERMISSIONS: Record<RoleName, { description: string; permissio
     permissions: ['*']
   },
   PHARMACIST: {
-    description: 'Licensed pharmacist with dispensing, catalog, returns approval and management access',
+    description: 'Licensed pharmacist with full pharmacy settings, user administration, catalog, dispensing and purchasing management',
     permissions: [
       PERMISSIONS.USERS_READ,
+      PERMISSIONS.USERS_CREATE,
+      PERMISSIONS.USERS_UPDATE,
+      PERMISSIONS.USERS_DELETE,
+      PERMISSIONS.SETTINGS_MANAGE,
+      PERMISSIONS.SETTINGS_READ,
       PERMISSIONS.CATALOG_READ,
       PERMISSIONS.CATALOG_CREATE,
       PERMISSIONS.CATALOG_UPDATE,
@@ -94,6 +100,8 @@ export const ROLE_PERMISSIONS: Record<RoleName, { description: string; permissio
   STAFF: {
     description: 'Dispensing and sales assistant for counter transactions, catalog lookup, alerts and safety notices',
     permissions: [
+      PERMISSIONS.SETTINGS_READ,
+      PERMISSIONS.USERS_READ,
       PERMISSIONS.CATALOG_READ,
       PERMISSIONS.INVENTORY_READ,
       PERMISSIONS.SUPPLIERS_READ,
@@ -114,6 +122,7 @@ export const ROLE_PERMISSIONS: Record<RoleName, { description: string; permissio
   VERIFIER: {
     description: 'Specialized quality and GRN stock verification officer',
     permissions: [
+      PERMISSIONS.SETTINGS_READ,
       PERMISSIONS.USERS_READ,
       PERMISSIONS.CATALOG_READ,
       PERMISSIONS.INVENTORY_READ,
