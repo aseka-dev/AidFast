@@ -27,9 +27,12 @@ export {
   TransactionsPage,
   AlertsPage,
   CommunityDemandPage,
-  SafetyNoticesPage,
   ReportsPage
 } from './pages/ModulePages';
-// Expiry & Stock Alerts
+
+// M5: Expiry & Stock Alerts
 export { default as ExpiryStockAlerts } from './pages/ExpiryStockAlerts';
+
+// M5: Safety Notices
+export { default as SafetyNoticesPage } from './pages/SafetyNoticesPage';
 
