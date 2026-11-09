@@ -7,6 +7,7 @@ export interface IGRN extends Document {
   purchaseOrderId?: mongoose.Types.ObjectId;
   grnNumber: string;
   invoiceNumber?: string;
+  invoiceDate?: Date;
   receivedDate: Date;
   status: GRNStatus;
   verificationComment?: string;
@@ -47,6 +48,7 @@ const grnSchema = new Schema<IGRN>(
       trim: true,
     },
     invoiceNumber: String,
+    invoiceDate: Date,
     receivedDate: {
       type: Date,
       required: true,

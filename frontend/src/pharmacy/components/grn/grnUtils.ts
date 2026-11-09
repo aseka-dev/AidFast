@@ -21,7 +21,7 @@ export const emptyItem = (): GrnItem => ({
 });
 
 export const accepted = (item: GrnItem): number =>
-  Math.max(0, item.receivedQuantity - item.rejectedQuantity);
+  item.receivedQuantity - item.rejectedQuantity;
 
 export const calculateGrnTotal = (items: GrnItem[]): number =>
   items.reduce(
@@ -29,3 +29,39 @@ export const calculateGrnTotal = (items: GrnItem[]): number =>
     0
   );
 
+export const referenceId = (
+  value?: string | { _id: string } | null
+): string => {
+  if (!value) return '';
+  return typeof value === 'string' ? value : value._id;
+};
+
+export const formatGrnStatus = (status: string): string =>
+  status
+    .replaceAll('_', ' ')
+    .toLowerCase()
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+
+export const formatGrnDate = (value?: string): string => {
+  if (!value) return '—';
+
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime())
+    ? '—'
+    : parsed.toLocaleDateString('en-GB');
+};
+
+export const responseRecords = <T,>(
+  result: unknown,
+  key: string
+): T[] | null => {
+  if (Array.isArray(result)) return result as T[];
+  if (!result || typeof result !== 'object') return null;
+
+  const data = (result as { data?: unknown }).data;
+  if (Array.isArray(data)) return data as T[];
+  if (!data || typeof data !== 'object') return null;
+
+  const records = (data as Record<string, unknown>)[key];
+  return Array.isArray(records) ? records as T[] : null;
+};

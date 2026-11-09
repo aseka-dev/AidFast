@@ -12,7 +12,6 @@ const STORAGE_KEYS = {
 
 const ROLE_PERMISSIONS_FALLBACK: Record<string, string[]> = {
   ADMIN: ['*'],
-  OWNER: ['*'],
   PHARMACIST: [
     'pharmacy:settings', 'pharmacy:settings:read',
     'users:read', 'users:create', 'users:update', 'users:delete',
@@ -246,7 +245,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const rawRole = (state.currentPharmacy.role || state.user?.role || '').toUpperCase();
 
     // Admin / Owner or wildcard has full access
-    if (rawRole === 'ADMIN' || rawRole === 'OWNER' || permissions.includes('*')) {
+    if (rawRole === 'ADMIN' || permissions.includes('*')) {
       return true;
     }
 

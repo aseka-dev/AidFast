@@ -17,6 +17,7 @@ interface Supplier {
 
 
 const DistributorDirectory: React.FC<{ pharmacyId?: string }> = ({ pharmacyId }) => {
+  const auth = useAuth();
 
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [search, setSearch] = useState('');
@@ -186,21 +187,23 @@ const DistributorDirectory: React.FC<{ pharmacyId?: string }> = ({ pharmacyId })
 
   return (
     <div className="space-y-6 p-6">
-      <nav className="flex flex-wrap gap-2 border-b pb-4">
-        <Link to="/dashboard/purchasing" className="rounded-lg border bg-white px-4 py-2 text-sm">
+      <nav className="flex flex-wrap gap-2 pb-2 text-sm">
+        <Link to="/dashboard/purchasing" className="rounded-lg border border-[#E2E8E5] bg-white px-4 py-2 hover:bg-emerald-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600">
           GRN Register
         </Link>
         <span className="rounded-lg bg-emerald-700 px-4 py-2 text-sm text-white">
           Distributors
         </span>
-        <span className="rounded-lg border px-4 py-2 text-sm text-gray-500">
-          GRN Verification
-        </span>
+        {auth.hasPermission('grn:verify') && (
+          <Link to="/dashboard/purchasing/verification" className="rounded-lg border border-[#E2E8E5] bg-white px-4 py-2 hover:bg-emerald-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600">
+            GRN Verification
+          </Link>
+        )}
       </nav>
 
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-emerald-950">
+        <h1 className="text-2xl font-bold text-emerald-950">
             Distributors
           </h1>
           <p className="mt-1 text-sm text-gray-500">
@@ -231,7 +234,7 @@ const DistributorDirectory: React.FC<{ pharmacyId?: string }> = ({ pharmacyId })
       {success && <p role="status" className="text-sm text-emerald-700">{success}</p>}
 
       {showForm && (
-        <form onSubmit={saveSupplier} className="grid gap-4 rounded-xl border bg-white p-5 md:grid-cols-2">
+        <form onSubmit={saveSupplier} className="grid gap-4 rounded-xl border border-[#E2E8E5] bg-white p-5 md:grid-cols-2">
           {([
             ['supplierName', 'Distributor Name'],
             ['contact', 'Contact Person / Phone'],
@@ -247,7 +250,7 @@ const DistributorDirectory: React.FC<{ pharmacyId?: string }> = ({ pharmacyId })
                 onChange={(e) =>
                   setForm({ ...form, [field]: e.target.value })
                 }
-                className="w-full rounded-lg border border-gray-300 p-3"
+                className="w-full rounded-lg border border-[#E2E8E5] p-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600"
               />
             </label>
           ))}
@@ -270,11 +273,11 @@ const DistributorDirectory: React.FC<{ pharmacyId?: string }> = ({ pharmacyId })
           setPage(1);
         }}
         placeholder="Search by distributor name, contact person, phone, or email..."
-        className="w-full rounded-xl border border-gray-200 bg-white p-4 outline-none focus:border-emerald-600"
+        className="w-full rounded-xl border border-[#E2E8E5] bg-white p-4 outline-none focus-visible:ring-2 focus-visible:ring-emerald-600"
       />
 
-      <section className="overflow-hidden rounded-xl border border-gray-200 bg-white">
-        <div className="flex items-center justify-between border-b p-4">
+      <section className="overflow-hidden rounded-xl border border-[#E2E8E5] bg-white">
+        <div className="flex items-center justify-between border-b border-[#E2E8E5] p-4">
           <div>
             <h2 className="font-semibold text-emerald-950">
               Distributor Directory
@@ -302,7 +305,7 @@ const DistributorDirectory: React.FC<{ pharmacyId?: string }> = ({ pharmacyId })
             </thead>
             <tbody>
               {visible.map((supplier) => (
-                <tr key={supplier._id} className="border-t">
+                <tr key={supplier._id} className="border-t border-[#E2E8E5]">
                   <td className="p-4 font-semibold text-emerald-800">
                     {supplier.supplierName}
                   </td>
@@ -346,7 +349,7 @@ const DistributorDirectory: React.FC<{ pharmacyId?: string }> = ({ pharmacyId })
           )}
         </div>
 
-        <div className="flex items-center justify-between border-t p-4 text-sm text-gray-500">
+        <div className="flex items-center justify-between border-t border-[#E2E8E5] p-4 text-sm text-gray-500">
           <span>Showing {visible.length} of {filtered.length} distributors</span>
           <div className="flex items-center gap-3">
             <button
@@ -369,7 +372,7 @@ const DistributorDirectory: React.FC<{ pharmacyId?: string }> = ({ pharmacyId })
       </section>
 
       {selected && (
-        <div className="rounded-xl border bg-white p-5">
+        <div className="rounded-xl border border-[#E2E8E5] bg-white p-5">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold">{selected.supplierName}</h2>
             <button onClick={() => setSelected(null)}>Close</button>

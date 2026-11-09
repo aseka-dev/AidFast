@@ -3,6 +3,16 @@ import { API_BASE, authenticatedFetch } from '../../shared/api';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import useAuth from '../../shared/context/useAuth';
+import {
+  formatGrnDate,
+  formatGrnStatus,
+  responseRecords
+} from '../components/grn/grnUtils';
+
+interface Supplier {
+  _id: string;
+  supplierName: string;
+}
 
 interface Grn {
   _id: string;
@@ -16,14 +26,23 @@ interface Grn {
   };
   totalAmount?: number;
   items?: unknown[];
+  createdBy?: string | { _id: string };
 }
 
 
 
-const getSupplierName = (grn: Grn): string =>
-  typeof grn.supplierId === 'object'
-    ? grn.supplierId?.supplierName || '—'
-    : '—';
+const getSupplierName = (
+  grn: Grn,
+  suppliers: Supplier[]
+): string => {
+  if (typeof grn.supplierId === 'object') {
+    return grn.supplierId?.supplierName || '—';
+  }
+
+  return suppliers.find(
+    (supplier) => supplier._id === grn.supplierId
+  )?.supplierName || '—';
+};
 
 const GrnRegisterPage: React.FC = () => {
   const auth = useAuth();
@@ -32,6 +51,7 @@ const GrnRegisterPage: React.FC = () => {
     auth.currentPharmacy?.pharmacyId;
 
   const [grns, setGrns] = useState<Grn[]>([]);
+  const [supplierRecords, setSupplierRecords] = useState<Supplier[]>([]);
   const [search, setSearch] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
@@ -42,22 +62,46 @@ const GrnRegisterPage: React.FC = () => {
   const endpoint = pharmacyId
     ? `${API_BASE}/api/v1/pharmacies/${encodeURIComponent(pharmacyId)}/grns`
     : '';
+  const supplierEndpoint = pharmacyId
+    ? `${API_BASE}/api/v1/pharmacies/${encodeURIComponent(pharmacyId)}/suppliers`
+    : '';
 
   useEffect(() => {
-    if (!endpoint) return;
+    if (!endpoint || !supplierEndpoint) {
+      return;
+    }
 
     const controller = new AbortController();
 
     const fetchGrns = async () => {
+      setLoading(true);
+      setGrns([]);
+      setSupplierRecords([]);
       try {
-        const response = await authenticatedFetch(endpoint, {
-          credentials: 'omit',
-          signal: controller.signal
-        });
+        const [response, supplierResult] = await Promise.all([
+          authenticatedFetch(endpoint, {
+            credentials: 'omit',
+            signal: controller.signal
+          }, auth.token),
+          authenticatedFetch(supplierEndpoint, {
+            credentials: 'omit',
+            signal: controller.signal
+          }, auth.token)
+            .then((supplierResponse) =>
+              supplierResponse.ok
+                ? supplierResponse.json()
+                : null
+            )
+            .catch(() => null)
+        ]);
 
         if (!response.ok) {
           throw new Error(
-            response.status === 501
+            response.status === 401
+              ? 'Your session is invalid or expired. Please sign in again.'
+              : response.status === 403
+                ? 'You are not authorized for the selected pharmacy.'
+                : response.status === 501
               ? 'GRN listing API is not implemented yet.'
               : `Unable to load GRNs (${response.status}).`
           );
@@ -65,11 +109,7 @@ const GrnRegisterPage: React.FC = () => {
 
         const result = await response.json();
 
-        const records = Array.isArray(result)
-          ? result
-          : Array.isArray(result.data)
-            ? result.data
-            : result.data?.grns;
+        const records = responseRecords<Grn>(result, 'grns');
 
         if (!Array.isArray(records)) {
           throw new Error('Unexpected GRN response format.');
@@ -78,6 +118,11 @@ const GrnRegisterPage: React.FC = () => {
         if (controller.signal.aborted) return;
 
         setGrns(records);
+        if (supplierResult) {
+          setSupplierRecords(
+            responseRecords<Supplier>(supplierResult, 'suppliers') || []
+          );
+        }
         setError('');
       } catch (err) {
         if (controller.signal.aborted) return;
@@ -97,32 +142,34 @@ const GrnRegisterPage: React.FC = () => {
     void fetchGrns();
 
     return () => controller.abort();
-  }, [endpoint]);
+  }, [auth.token, endpoint, supplierEndpoint]);
 
-  const confirmed = useMemo(
-    () => grns.filter((grn) => grn.status === 'CONFIRMED'),
-    [grns]
+  const registerRecords = useMemo(
+    () => endpoint
+      ? grns
+      : [],
+    [endpoint, grns]
   );
 
-  const suppliers = useMemo(
+  const supplierOptions = useMemo(
     () => [
       ...new Set(
-        confirmed
-          .map(getSupplierName)
+        registerRecords
+          .map((grn) => getSupplierName(grn, supplierRecords))
           .filter((name) => name !== '—')
       )
     ].sort(),
-    [confirmed]
+    [registerRecords, supplierRecords]
   );
 
   const filtered = useMemo(() => {
     const query = search.toLowerCase().trim();
 
-    return confirmed.filter((grn) => {
+    return registerRecords.filter((grn) => {
       const receivedDate =
         grn.receivedDate?.slice(0, 10) || '';
 
-      const name = getSupplierName(grn);
+      const name = getSupplierName(grn, supplierRecords);
 
       const matchesSearch = [
         grn.grnNumber,
@@ -140,7 +187,8 @@ const GrnRegisterPage: React.FC = () => {
       );
     });
   }, [
-    confirmed,
+    registerRecords,
+    supplierRecords,
     search,
     startDate,
     endDate,
@@ -148,30 +196,32 @@ const GrnRegisterPage: React.FC = () => {
   ]);
 
   return (
-    <div className="space-y-6 p-6">
-      <nav className="flex flex-wrap gap-2 border-b pb-4 text-sm">
+    <div className="space-y-5 p-5 md:p-6">
+      <nav className="flex flex-wrap gap-2 pb-2 text-sm">
         <span className="rounded-lg bg-emerald-700 px-4 py-2 text-white">
           GRN Register
         </span>
 
         <Link
           to="/dashboard/purchasing/distributors"
-          className="rounded-lg border bg-white px-4 py-2"
+          className="rounded-lg border border-[#E2E8E5] bg-white px-4 py-2 hover:bg-emerald-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600"
         >
           Distributors
         </Link>
 
-        <Link
-          to="/dashboard/purchasing/verification"
-          className="rounded-lg border bg-white px-4 py-2"
-        >
-          GRN Verification
-        </Link>
+        {auth.hasPermission('grn:verify') && (
+          <Link
+            to="/dashboard/purchasing/verification"
+            className="rounded-lg border border-[#E2E8E5] bg-white px-4 py-2 hover:bg-emerald-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600"
+          >
+            GRN Verification
+          </Link>
+        )}
       </nav>
 
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-emerald-950">
+          <h1 className="text-2xl font-bold text-emerald-950">
             Goods Received Note Register
           </h1>
 
@@ -181,15 +231,17 @@ const GrnRegisterPage: React.FC = () => {
           </p>
         </div>
 
-        <Link
-          to="/dashboard/purchasing/new-grn"
-          className="rounded-lg bg-emerald-700 px-5 py-3 text-sm font-semibold text-white"
-        >
-          + New GRN
-        </Link>
+        {auth.hasPermission('grn:create') && (
+          <Link
+            to="/dashboard/purchasing/new-grn"
+            className="rounded-lg bg-emerald-700 px-5 py-3 text-sm font-semibold text-white"
+          >
+            + New GRN
+          </Link>
+        )}
       </div>
 
-      <section className="grid gap-4 rounded-xl border bg-white p-5 md:grid-cols-4">
+      <section className="grid gap-4 rounded-xl bg-white p-5 md:grid-cols-4">
         <label className="space-y-2 text-sm md:col-span-2">
           <span>Search register</span>
 
@@ -197,7 +249,7 @@ const GrnRegisterPage: React.FC = () => {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search GRN number, invoice number, or distributor"
-            className="w-full rounded-lg border p-3"
+            className="w-full rounded-lg border border-[#E2E8E5] p-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600"
           />
         </label>
 
@@ -210,7 +262,7 @@ const GrnRegisterPage: React.FC = () => {
               type="date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
-              className="w-full min-w-0 rounded-lg border p-2"
+              className="w-full min-w-0 rounded-lg border border-[#E2E8E5] p-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600"
             />
 
             <input
@@ -218,7 +270,7 @@ const GrnRegisterPage: React.FC = () => {
               type="date"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
-              className="w-full min-w-0 rounded-lg border p-2"
+              className="w-full min-w-0 rounded-lg border border-[#E2E8E5] p-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600"
             />
           </div>
         </div>
@@ -229,13 +281,13 @@ const GrnRegisterPage: React.FC = () => {
           <select
             value={supplier}
             onChange={(e) => setSupplier(e.target.value)}
-            className="w-full rounded-lg border p-3"
+            className="w-full rounded-lg border border-[#E2E8E5] p-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600"
           >
             <option value="ALL">
               All distributors
             </option>
 
-            {suppliers.map((name) => (
+            {supplierOptions.map((name) => (
               <option key={name} value={name}>
                 {name}
               </option>
@@ -262,8 +314,8 @@ const GrnRegisterPage: React.FC = () => {
         </div>
       )}
 
-      <section className="overflow-hidden rounded-xl border bg-white">
-        <div className="border-b p-4">
+      <section className="overflow-hidden rounded-xl border border-[#E2E8E5] bg-white">
+        <div className="border-b border-[#E2E8E5] p-4">
           <h2 className="font-semibold text-emerald-950">
             GRN Register
           </h2>
@@ -298,22 +350,18 @@ const GrnRegisterPage: React.FC = () => {
               {filtered.map((grn) => (
                 <tr
                   key={grn._id}
-                  className="border-t"
+                  className="border-t border-[#E2E8E5]"
                 >
                   <td className="p-3 font-semibold text-emerald-800">
                     {grn.grnNumber}
                   </td>
 
                   <td className="p-3">
-                    {grn.receivedDate
-                      ? new Date(
-                          grn.receivedDate
-                        ).toLocaleDateString('en-GB')
-                      : '—'}
+                    {formatGrnDate(grn.receivedDate)}
                   </td>
 
                   <td className="p-3">
-                    {getSupplierName(grn)}
+                    {getSupplierName(grn, supplierRecords)}
                   </td>
 
                   <td className="p-3">
@@ -333,8 +381,8 @@ const GrnRegisterPage: React.FC = () => {
                   </td>
 
                   <td className="p-3">
-                    <span className="rounded-full bg-gray-100 px-3 py-1 text-xs">
-                      Confirmed
+                    <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-800">
+                      {formatGrnStatus(grn.status)}
                     </span>
                   </td>
 
@@ -351,6 +399,18 @@ const GrnRegisterPage: React.FC = () => {
                       >
                         Print GRN
                       </Link>
+                      {auth.hasPermission('grn:create') &&
+                        grn.status === 'DRAFT' &&
+                        (auth.currentPharmacy?.role !== 'STAFF' ||
+                          (typeof grn.createdBy === 'string'
+                            ? grn.createdBy
+                            : grn.createdBy?._id) === auth.user?.id) && (
+                          <Link
+                            to={`/dashboard/purchasing/grns/${grn._id}/edit`}
+                          >
+                            Edit draft
+                          </Link>
+                        )}
                     </div>
                   </td>
                 </tr>
@@ -366,13 +426,13 @@ const GrnRegisterPage: React.FC = () => {
 
           {!loading && filtered.length === 0 && (
             <p className="p-8 text-center text-gray-500">
-              No confirmed GRNs found.
+              No GRNs found.
             </p>
           )}
         </div>
 
-        <p className="border-t p-4 text-xs text-gray-500">
-          Showing {filtered.length} confirmed GRNs
+        <p className="border-t border-[#E2E8E5] p-4 text-xs text-gray-500">
+          Showing {filtered.length} GRNs
         </p>
       </section>
     </div>

@@ -12,7 +12,7 @@ import useAuth from '../../shared/context/useAuth';
 import GrnItemTable from '../components/grn/GrnItemTable';
 
 import {
-  calculateGrnTotal,
+  referenceId,
   type GrnItem
 } from '../components/grn/grnUtils';
 
@@ -39,12 +39,14 @@ interface ExistingGrn {
   _id: string;
   status: string;
   grnNumber: string;
-  supplierId: string | { _id: string };
+  supplierId: string | { _id: string } | null;
   invoiceNumber: string;
   invoiceDate?: string;
   receivedDate: string;
-  purchaseOrderId?: string | { _id: string };
-  items?: GrnItem[];
+  purchaseOrderId?: string | { _id: string } | null;
+  items?: (Omit<GrnItem, 'medicineId'> & {
+    medicineId: string | { _id: string };
+  })[];
 }
 
 
@@ -60,15 +62,6 @@ const emptyForm: GrnForm = {
 
 const dateInput = (value?: string) =>
   value ? value.slice(0, 10) : '';
-
-const referenceId = (
-  value?: string | { _id: string }
-): string => {
-  if (!value) return '';
-  return typeof value === 'string'
-    ? value
-    : value._id;
-};
 
 const NewGrnPage: React.FC = () => {
   const navigate = useNavigate();
@@ -103,8 +96,9 @@ const NewGrnPage: React.FC = () => {
   const [notice, setNotice] = useState('');
 
   const canEdit =
-    recordStatus === 'DRAFT' ||
-    recordStatus === 'CHANGES_REQUESTED';
+    auth.hasPermission('grn:create') &&
+    recordStatus === 'DRAFT';
+  const canSubmit = auth.hasPermission('grn:submit');
 
   const activeId = editGrnId || savedGrnId;
 
@@ -119,11 +113,11 @@ const NewGrnPage: React.FC = () => {
           authenticatedFetch(`${root}/suppliers`, {
             credentials: 'omit',
             signal: controller.signal
-          }),
+          }, auth.token),
           authenticatedFetch(`${root}/medicines`, {
             credentials: 'omit',
             signal: controller.signal
-          })
+          }, auth.token)
         ];
 
         if (editGrnId) {
@@ -133,7 +127,8 @@ const NewGrnPage: React.FC = () => {
               {
                 credentials: 'omit',
                 signal: controller.signal
-              }
+              },
+              auth.token
             )
           );
         }
@@ -222,7 +217,11 @@ const NewGrnPage: React.FC = () => {
             )
           });
 
-          setItems(existing.items);
+          setItems(existing.items.map((item) => ({
+            ...item,
+            medicineId: referenceId(item.medicineId),
+            expiryDate: dateInput(item.expiryDate)
+          })));
         } else {
           setRecordStatus('DRAFT');
           setSavedGrnId(null);
@@ -249,7 +248,7 @@ const NewGrnPage: React.FC = () => {
     void loadData();
 
     return () => controller.abort();
-  }, [root, editGrnId]);
+  }, [auth.token, root, editGrnId]);
 
   const updateForm = (
     field: keyof GrnForm,
@@ -297,9 +296,9 @@ const NewGrnPage: React.FC = () => {
 
       if (
         !Number.isInteger(item.receivedQuantity) ||
-        item.receivedQuantity <= 0
+        item.receivedQuantity < 0
       ) {
-        return 'Received quantity must be a positive whole number.';
+        return 'Received quantity must be a non-negative whole number.';
       }
 
       const quantities = [
@@ -363,17 +362,11 @@ const NewGrnPage: React.FC = () => {
         form.purchaseOrderId || undefined,
       invoiceDate:
         form.invoiceDate || undefined,
-      totalAmount: calculateGrnTotal(items),
       items: items.map((item) => ({
         ...item,
         acceptedQuantity:
           item.receivedQuantity -
-          item.rejectedQuantity,
-        lineTotal:
-          (
-            item.receivedQuantity -
-            item.rejectedQuantity
-          ) * item.wholesalePrice
+          item.rejectedQuantity
       }))
     };
 
@@ -389,7 +382,7 @@ const NewGrnPage: React.FC = () => {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify(payload)
-      });
+      }, auth.token);
 
       if (!response.ok) {
         throw new Error(
@@ -446,7 +439,8 @@ const NewGrnPage: React.FC = () => {
           headers: {
             'Content-Type': 'application/json'
           }
-        }
+        },
+        auth.token
       );
 
       if (!response.ok) {
@@ -459,9 +453,7 @@ const NewGrnPage: React.FC = () => {
 
       setRecordStatus('PENDING_VERIFICATION');
 
-      navigate(
-        '/dashboard/purchasing/verification'
-      );
+      navigate('/dashboard/purchasing');
     } catch (err) {
       setError(
         err instanceof Error
@@ -474,10 +466,10 @@ const NewGrnPage: React.FC = () => {
   };
 
   const fieldClass =
-    'w-full rounded-lg border border-gray-300 bg-white px-3 py-3 text-sm outline-none focus:border-emerald-600 disabled:bg-gray-100';
+    'w-full rounded-lg border border-[#E2E8E5] bg-white px-3 py-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 disabled:bg-gray-100';
 
   return (
-    <div className="space-y-6 p-6 pb-28">
+    <div className="space-y-5 p-5 pb-28 md:p-6">
       <Link
         to="/dashboard/purchasing"
         className="text-sm font-semibold text-emerald-700"
@@ -486,7 +478,7 @@ const NewGrnPage: React.FC = () => {
       </Link>
 
       <div>
-        <h1 className="text-3xl font-bold text-emerald-950">
+        <h1 className="text-2xl font-bold text-emerald-950">
           {isEditMode
             ? 'Edit Goods Received Note'
             : 'New Goods Received Note'}
@@ -498,7 +490,7 @@ const NewGrnPage: React.FC = () => {
         </p>
       </div>
 
-      <div className="overflow-x-auto rounded-xl border border-emerald-100 bg-gray-50 p-4 text-center text-xs text-gray-500">
+      <div className="overflow-x-auto rounded-xl border border-[#E2E8E5] bg-gray-50 p-4 text-center text-xs text-gray-500">
         <span className="font-semibold text-emerald-700">
           Goods Received
         </span>
@@ -545,8 +537,8 @@ const NewGrnPage: React.FC = () => {
       )}
 
       <fieldset disabled={loading || !canEdit || !root}>
-        <section className="rounded-xl border border-gray-200 bg-white p-6">
-          <div className="mb-5 border-b pb-4">
+        <section className="rounded-xl bg-white p-5 md:p-6">
+          <div className="mb-5 pb-1">
             <h2 className="text-lg font-semibold text-emerald-950">
               General Information
             </h2>
@@ -685,13 +677,11 @@ const NewGrnPage: React.FC = () => {
         </div>
       </fieldset>
 
-      <div className="flex flex-wrap items-center justify-end gap-3 rounded-xl border bg-white p-4">
+      <div className="flex flex-wrap items-center justify-end gap-3 rounded-xl bg-white p-4">
         <button
           type="button"
           onClick={() =>
-            navigate(
-              '/dashboard/purchasing/verification'
-            )
+            navigate('/dashboard/purchasing')
           }
           className="rounded-lg px-4 py-3 text-sm font-semibold text-emerald-700"
         >
@@ -712,23 +702,25 @@ const NewGrnPage: React.FC = () => {
           Save Draft
         </button>
 
-        <button
-          type="button"
-          onClick={() =>
-            void submitForVerification()
-          }
-          disabled={
-            saving ||
-            loading ||
-            !root ||
-            !canEdit
-          }
-          className="rounded-lg bg-emerald-700 px-5 py-3 text-sm font-semibold text-white disabled:opacity-50"
-        >
-          {saving
-            ? 'Processing...'
-            : 'Submit for Verification'}
-        </button>
+        {canSubmit && (
+          <button
+            type="button"
+            onClick={() =>
+              void submitForVerification()
+            }
+            disabled={
+              saving ||
+              loading ||
+              !root ||
+              !canEdit
+            }
+            className="rounded-lg bg-emerald-700 px-5 py-3 text-sm font-semibold text-white disabled:opacity-50"
+          >
+            {saving
+              ? 'Processing...'
+              : 'Submit for Verification'}
+          </button>
+        )}
       </div>
     </div>
   );

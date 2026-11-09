@@ -12,6 +12,11 @@ import {
 } from 'react-router-dom';
 
 import useAuth from '../../shared/context/useAuth';
+import {
+  formatGrnDate,
+  formatGrnStatus,
+  referenceId
+} from '../components/grn/grnUtils';
 
 interface GrnItem {
   _id?: string;
@@ -38,10 +43,11 @@ interface Grn {
   invoiceNumber: string;
   invoiceDate?: string;
   supplierId?: string | {
+    _id?: string;
     supplierName: string;
     contact?: string;
   };
-  purchaseOrderId?: string;
+  purchaseOrderId?: string | { _id: string };
   verificationComment?: string;
   createdAt?: string;
   confirmedAt?: string;
@@ -50,18 +56,24 @@ interface Grn {
   items?: GrnItem[];
 }
 
+interface Supplier {
+  _id: string;
+  supplierName: string;
+}
 
+interface Medicine {
+  _id: string;
+  name?: string;
+  medicineName?: string;
+  genericName?: string;
+  brandTradeName?: string;
+}
 
 const money = (value: number) =>
   `LKR ${value.toLocaleString('en-LK', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2
   })}`;
-
-const date = (value?: string) =>
-  value
-    ? new Date(value).toLocaleDateString('en-GB')
-    : '—';
 
 const GrnDetailsPage: React.FC = () => {
   const { grnId } = useParams<{ grnId: string }>();
@@ -73,6 +85,8 @@ const GrnDetailsPage: React.FC = () => {
     auth.currentPharmacy?.pharmacyId;
 
   const [grn, setGrn] = useState<Grn | null>(null);
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [medicines, setMedicines] = useState<Medicine[]>([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
   const [comment, setComment] = useState('');
@@ -82,6 +96,9 @@ const GrnDetailsPage: React.FC = () => {
     ? `${API_BASE}/api/v1/pharmacies/${encodeURIComponent(
         pharmacyId
       )}/grns/${encodeURIComponent(grnId)}`
+    : '';
+  const pharmacyRoot = pharmacyId
+    ? `${API_BASE}/api/v1/pharmacies/${encodeURIComponent(pharmacyId)}`
     : '';
 
   const printRequested = params.get('print') === '1';
@@ -100,7 +117,7 @@ const GrnDetailsPage: React.FC = () => {
     try {
       const response = await authenticatedFetch(endpoint, {
         credentials: 'omit'
-      });
+      }, auth.token);
 
       if (!response.ok) {
         throw new Error(
@@ -138,10 +155,28 @@ const GrnDetailsPage: React.FC = () => {
 
     const fetchGrn = async () => {
       try {
-        const response = await authenticatedFetch(endpoint, {
-          credentials: 'omit',
-          signal: controller.signal
-        });
+        const [response, supplierResult, medicineResult] = await Promise.all([
+          authenticatedFetch(endpoint, {
+            credentials: 'omit',
+            signal: controller.signal
+          }, auth.token),
+          authenticatedFetch(`${pharmacyRoot}/suppliers`, {
+            credentials: 'omit',
+            signal: controller.signal
+          }, auth.token)
+            .then((supplierResponse) =>
+              supplierResponse.ok ? supplierResponse.json() : null
+            )
+            .catch(() => null),
+          authenticatedFetch(`${pharmacyRoot}/medicines`, {
+            credentials: 'omit',
+            signal: controller.signal
+          }, auth.token)
+            .then((medicineResponse) =>
+              medicineResponse.ok ? medicineResponse.json() : null
+            )
+            .catch(() => null)
+        ]);
 
         if (!response.ok) {
           throw new Error(
@@ -162,6 +197,20 @@ const GrnDetailsPage: React.FC = () => {
 
         setGrn(record);
         setComment(record.verificationComment || '');
+        if (supplierResult) {
+          setSuppliers(
+            (Array.isArray(supplierResult)
+              ? supplierResult
+              : supplierResult.data?.suppliers) || []
+          );
+        }
+        if (medicineResult) {
+          setMedicines(
+            (Array.isArray(medicineResult)
+              ? medicineResult
+              : medicineResult.data?.medicines) || []
+          );
+        }
         setError('');
       } catch (err) {
         if (controller.signal.aborted) {
@@ -185,7 +234,7 @@ const GrnDetailsPage: React.FC = () => {
     return () => {
       controller.abort();
     };
-  }, [endpoint]);
+  }, [auth.token, endpoint, pharmacyRoot]);
 
   // Print after GRN data is available.
   useEffect(() => {
@@ -199,6 +248,14 @@ const GrnDetailsPage: React.FC = () => {
     action: 'confirm' | 'request-changes'
   ) => {
     if (!endpoint || !grn) {
+      return;
+    }
+    if (
+      (action === 'confirm' &&
+        !auth.hasPermission('grn:confirm')) ||
+      (action === 'request-changes' &&
+        !auth.hasPermission('grn:verify'))
+    ) {
       return;
     }
 
@@ -227,7 +284,8 @@ const GrnDetailsPage: React.FC = () => {
           body: JSON.stringify({
             verificationComment: comment
           })
-        }
+        },
+        auth.token
       );
 
       if (!response.ok) {
@@ -277,7 +335,9 @@ const GrnDetailsPage: React.FC = () => {
   const supplierName =
     typeof grn.supplierId === 'object'
       ? grn.supplierId.supplierName
-      : '—';
+      : suppliers.find(
+          (supplier) => supplier._id === grn.supplierId
+        )?.supplierName || '—';
 
   const acceptedValue = (grn.items || []).reduce(
     (sum, item) =>
@@ -286,37 +346,38 @@ const GrnDetailsPage: React.FC = () => {
         Number(item.wholesalePrice || 0),
     0
   );
+  const returnToRegister =
+    grn.status === 'CONFIRMED' ||
+    !auth.hasPermission('grn:verify');
 
   return (
-    <div className="space-y-5 p-6 pb-20">
+    <div className="space-y-5 p-5 pb-20 md:p-6">
       <Link
-        to={
-          grn.status === 'CONFIRMED'
-            ? '/dashboard/purchasing'
-            : '/dashboard/purchasing/verification'
-        }
+        to={returnToRegister
+          ? '/dashboard/purchasing'
+          : '/dashboard/purchasing/verification'}
         className="text-sm font-semibold text-emerald-700"
       >
         ← Back to{' '}
-        {grn.status === 'CONFIRMED'
+        {returnToRegister
           ? 'GRN Register'
           : 'GRN Verification'}
       </Link>
 
       {/* GRN Header */}
-      <section className="rounded-xl border bg-white p-5">
+      <section className="rounded-xl bg-white p-5">
         <div className="flex flex-wrap items-center gap-3">
           <h1 className="text-2xl font-bold text-emerald-950">
             {grn.grnNumber}
           </h1>
 
           <span className="rounded-full bg-gray-100 px-3 py-1 text-xs">
-            {grn.status.replaceAll('_', ' ')}
+            {formatGrnStatus(grn.status)}
           </span>
         </div>
 
         <p className="mt-2 text-sm text-gray-500">
-          Received {date(grn.receivedDate)} · Goods receipt details
+          Received {formatGrnDate(grn.receivedDate)} · Goods receipt details
         </p>
       </section>
 
@@ -338,29 +399,29 @@ const GrnDetailsPage: React.FC = () => {
       )}
 
       {/* GRN Information */}
-      <section className="rounded-xl border bg-white p-5">
-        <h2 className="mb-5 border-b pb-3 font-semibold text-emerald-950">
+      <section className="rounded-xl bg-white p-5">
+        <h2 className="mb-5 pb-1 font-semibold text-emerald-950">
           Goods Receipt Information
         </h2>
 
         <div className="grid gap-5 text-sm md:grid-cols-3">
           {([
             ['GRN Number', grn.grnNumber],
-            ['Received Date', date(grn.receivedDate)],
+            ['Received Date', formatGrnDate(grn.receivedDate)],
             ['Distributor', supplierName],
             [
               'Distributor Invoice Number',
               grn.invoiceNumber
             ],
-            ['Invoice Date', date(grn.invoiceDate)],
+            ['Invoice Date', formatGrnDate(grn.invoiceDate)],
             [
               'Purchase Order Reference',
-              grn.purchaseOrderId || '—'
+              referenceId(grn.purchaseOrderId) || '—'
             ],
-            ['Prepared Date', date(grn.createdAt)],
+            ['Prepared Date', formatGrnDate(grn.createdAt)],
             [
               'Verification Date',
-              date(grn.verifiedAt)
+              formatGrnDate(grn.verifiedAt)
             ],
             [
               'Verification Remarks',
@@ -380,7 +441,7 @@ const GrnDetailsPage: React.FC = () => {
       </section>
 
       {/* Medicine Items */}
-      <section className="overflow-hidden rounded-xl border bg-white">
+      <section className="overflow-hidden rounded-xl border border-[#E2E8E5] bg-white">
         <div className="p-5">
           <h2 className="font-semibold text-emerald-950">
             Received Medicine Items
@@ -419,18 +480,26 @@ const GrnDetailsPage: React.FC = () => {
                   typeof item.medicineId === 'object'
                     ? item.medicineId
                     : null;
+                const medicineId = referenceId(item.medicineId);
+                const medicineRecord = medicines.find(
+                  (entry) => entry._id === medicineId
+                );
 
                 return (
                   <tr
                     key={item._id || index}
-                    className="border-t"
+                    className="border-t border-[#E2E8E5]"
                   >
                     <td className="p-3">
                       {medicine?.medicineName ||
                         medicine?.genericName ||
-                        (typeof item.medicineId === 'string'
-                          ? item.medicineId
-                          : '—')}
+                        medicine?.brandTradeName ||
+                        medicineRecord?.name ||
+                        medicineRecord?.medicineName ||
+                        medicineRecord?.genericName ||
+                        medicineRecord?.brandTradeName ||
+                        medicineId ||
+                        '—'}
                     </td>
 
                     <td className="p-3">
@@ -438,7 +507,7 @@ const GrnDetailsPage: React.FC = () => {
                     </td>
 
                     <td className="p-3">
-                      {date(item.expiryDate)}
+                      {formatGrnDate(item.expiryDate)}
                     </td>
 
                     <td className="p-3">
@@ -485,7 +554,7 @@ const GrnDetailsPage: React.FC = () => {
       </section>
 
       {/* Financial Summary */}
-      <div className="grid gap-4 rounded-xl border bg-white p-5 md:grid-cols-2">
+      <div className="grid gap-4 rounded-xl bg-white p-5 md:grid-cols-2">
         <div>
           <p className="text-xs text-gray-500">
             Total Invoice Amount
@@ -513,53 +582,62 @@ const GrnDetailsPage: React.FC = () => {
 
       {/* Independent Verification */}
       {grn.status === 'PENDING_VERIFICATION' && (
-        <section className="space-y-4 rounded-xl border bg-white p-5">
+        <section className="space-y-4 rounded-xl bg-white p-5">
           <h2 className="font-semibold text-emerald-950">
             Independent Verification
           </h2>
 
-          <label className="block space-y-2 text-sm">
-            <span>Verification Remarks</span>
+          {(auth.hasPermission('grn:verify') ||
+            auth.hasPermission('grn:confirm')) ? (
+            <>
+              {auth.hasPermission('grn:verify') && (
+                <label className="block space-y-2 text-sm">
+                  <span>Verification Remarks</span>
 
-            <textarea
-              value={comment}
-              onChange={(e) =>
-                setComment(e.target.value)
-              }
-              rows={3}
-              className="w-full rounded-lg border p-3"
-            />
-          </label>
+                  <textarea
+                    value={comment}
+                    onChange={(e) =>
+                      setComment(e.target.value)
+                    }
+                    rows={3}
+                    className="w-full rounded-lg border border-[#E2E8E5] p-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600"
+                  />
+                </label>
+              )}
 
-          <div className="flex flex-wrap gap-3">
-            <button
-              type="button"
-              disabled={processing}
-              onClick={() =>
-                void performAction('request-changes')
-              }
-              className="rounded-lg border px-5 py-3 text-sm font-semibold text-amber-700 disabled:opacity-50"
-            >
-              Request Changes
-            </button>
+              <div className="flex flex-wrap gap-3">
+                {auth.hasPermission('grn:verify') && (
+                  <button
+                    type="button"
+                    disabled={processing}
+                    onClick={() =>
+                      void performAction('request-changes')
+                    }
+                    className="rounded-lg border border-[#E2E8E5] px-5 py-3 text-sm font-semibold text-amber-700 disabled:opacity-50"
+                  >
+                    Request Changes
+                  </button>
+                )}
 
-            <button
-              type="button"
-              disabled={processing}
-              onClick={() =>
-                void performAction('confirm')
-              }
-              className="rounded-lg bg-emerald-700 px-5 py-3 text-sm font-semibold text-white disabled:opacity-50"
-            >
-              Confirm GRN
-            </button>
-          </div>
-
-          <p className="text-xs text-gray-500">
-            The backend must verify the user's role and
-            prevent the creator from independently confirming
-            their own GRN.
-          </p>
+                {auth.hasPermission('grn:confirm') && (
+                  <button
+                    type="button"
+                    disabled={processing}
+                    onClick={() =>
+                      void performAction('confirm')
+                    }
+                    className="rounded-lg bg-emerald-700 px-5 py-3 text-sm font-semibold text-white disabled:opacity-50"
+                  >
+                    Confirm GRN
+                  </button>
+                )}
+              </div>
+            </>
+          ) : (
+            <p className="text-sm text-gray-500">
+              You do not have permission to verify or confirm this GRN.
+            </p>
+          )}
         </section>
       )}
 
@@ -568,16 +646,21 @@ const GrnDetailsPage: React.FC = () => {
         <button
           type="button"
           onClick={() => window.print()}
-          className="rounded-lg border px-5 py-3 text-sm"
+          className="rounded-lg border border-[#E2E8E5] px-5 py-3 text-sm"
         >
           Print GRN
         </button>
 
         <Link
-          to="/dashboard/purchasing/verification"
+          to={returnToRegister
+            ? '/dashboard/purchasing'
+            : '/dashboard/purchasing/verification'}
           className="rounded-lg bg-emerald-700 px-5 py-3 text-sm text-white"
         >
-          Back to GRN Verification
+          Back to{' '}
+          {returnToRegister
+            ? 'GRN Register'
+            : 'GRN Verification'}
         </Link>
       </div>
     </div>

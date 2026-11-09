@@ -13,6 +13,16 @@ import {
 } from 'react-router-dom';
 
 import useAuth from '../../shared/context/useAuth';
+import {
+  formatGrnDate,
+  formatGrnStatus,
+  responseRecords
+} from '../components/grn/grnUtils';
+
+interface Supplier {
+  _id: string;
+  supplierName: string;
+}
 
 interface Grn {
   _id: string;
@@ -38,16 +48,15 @@ const statuses = [
   'REVERSED'
 ];
 
-const formatStatus = (status: string) =>
-  status
-    .replaceAll('_', ' ')
-    .toLowerCase()
-    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+const supplierName = (grn: Grn, suppliers: Supplier[]): string => {
+  if (typeof grn.supplierId === 'object') {
+    return grn.supplierId?.supplierName || '—';
+  }
 
-const supplierName = (grn: Grn): string =>
-  typeof grn.supplierId === 'object'
-    ? grn.supplierId?.supplierName || '—'
-    : '—';
+  return suppliers.find(
+    (supplier) => supplier._id === grn.supplierId
+  )?.supplierName || '—';
+};
 
 const GrnVerificationPage: React.FC = () => {
   const navigate = useNavigate();
@@ -57,6 +66,7 @@ const GrnVerificationPage: React.FC = () => {
     auth.currentPharmacy?.pharmacyId;
 
   const [grns, setGrns] = useState<Grn[]>([]);
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('ALL');
   const [loading, setLoading] = useState(false);
@@ -67,8 +77,11 @@ const GrnVerificationPage: React.FC = () => {
   const endpoint = pharmacyId
     ? `${API_BASE}/api/v1/pharmacies/${encodeURIComponent(pharmacyId)}/grns`
     : '';
+  const supplierEndpoint = pharmacyId
+    ? `${API_BASE}/api/v1/pharmacies/${encodeURIComponent(pharmacyId)}/suppliers`
+    : '';
 
-  const loadGrns = useCallback(async () => {
+  const loadGrns = useCallback(async (signal?: AbortSignal) => {
     if (!endpoint) return;
 
     setLoading(true);
@@ -76,8 +89,9 @@ const GrnVerificationPage: React.FC = () => {
 
     try {
       const response = await authenticatedFetch(endpoint, {
-        credentials: 'omit'
-      });
+        credentials: 'omit',
+        signal
+      }, auth.token);
 
       if (!response.ok) {
         throw new Error(
@@ -89,11 +103,7 @@ const GrnVerificationPage: React.FC = () => {
 
       const result = await response.json();
 
-      const records = Array.isArray(result)
-        ? result
-        : Array.isArray(result.data)
-          ? result.data
-          : result.data?.grns;
+      const records = responseRecords<Grn>(result, 'grns');
 
       if (!Array.isArray(records)) {
         throw new Error('Unexpected GRN response format.');
@@ -101,27 +111,45 @@ const GrnVerificationPage: React.FC = () => {
 
       setGrns(records);
     } catch (err) {
+      if (signal?.aborted) return;
       setError(
         err instanceof Error
           ? err.message
           : 'Loading failed.'
       );
     } finally {
-      setLoading(false);
+      if (!signal?.aborted) setLoading(false);
     }
-  }, [endpoint]);
+  }, [auth.token, endpoint]);
 
   useEffect(() => {
-    if (!endpoint) return;
+    if (!endpoint || !supplierEndpoint) {
+      return;
+    }
 
     const controller = new AbortController();
 
     const fetchInitialGrns = async () => {
+      setGrns([]);
+      setSuppliers([]);
       try {
-        const response = await authenticatedFetch(endpoint, {
-          credentials: 'omit',
-          signal: controller.signal
-        });
+        setLoading(true);
+        const [response, supplierResult] = await Promise.all([
+          authenticatedFetch(endpoint, {
+            credentials: 'omit',
+            signal: controller.signal
+          }, auth.token),
+          authenticatedFetch(supplierEndpoint, {
+            credentials: 'omit',
+            signal: controller.signal
+          }, auth.token)
+            .then((supplierResponse) =>
+              supplierResponse.ok
+                ? supplierResponse.json()
+                : null
+            )
+            .catch(() => null)
+        ]);
 
         if (!response.ok) {
           throw new Error(
@@ -133,11 +161,7 @@ const GrnVerificationPage: React.FC = () => {
 
         const result = await response.json();
 
-        const records = Array.isArray(result)
-          ? result
-          : Array.isArray(result.data)
-            ? result.data
-            : result.data?.grns;
+        const records = responseRecords<Grn>(result, 'grns');
 
         if (!Array.isArray(records)) {
           throw new Error('Unexpected GRN response format.');
@@ -146,6 +170,11 @@ const GrnVerificationPage: React.FC = () => {
         if (controller.signal.aborted) return;
 
         setGrns(records);
+        if (supplierResult) {
+          setSuppliers(
+            responseRecords<Supplier>(supplierResult, 'suppliers') || []
+          );
+        }
         setError('');
       } catch (err) {
         if (controller.signal.aborted) return;
@@ -165,12 +194,12 @@ const GrnVerificationPage: React.FC = () => {
     void fetchInitialGrns();
 
     return () => controller.abort();
-  }, [endpoint]);
+  }, [auth.token, endpoint, supplierEndpoint]);
 
   const filtered = useMemo(() => {
     const query = search.trim().toLowerCase();
 
-    return grns.filter((grn) => {
+    return (endpoint ? grns : []).filter((grn) => {
       if (grn.status === 'CONFIRMED') return false;
 
       if (
@@ -183,12 +212,12 @@ const GrnVerificationPage: React.FC = () => {
       return [
         grn.grnNumber,
         grn.invoiceNumber,
-        supplierName(grn)
+        supplierName(grn, suppliers)
       ].some((value) =>
         (value || '').toLowerCase().includes(query)
       );
     });
-  }, [grns, search, status]);
+  }, [endpoint, grns, search, status, suppliers]);
 
   const pageSize = 8;
 
@@ -205,7 +234,7 @@ const GrnVerificationPage: React.FC = () => {
   );
 
   const submitGrn = async (grn: Grn) => {
-    if (!endpoint) return;
+    if (!endpoint || !auth.hasPermission('grn:submit')) return;
 
     setProcessingId(grn._id);
     setError('');
@@ -219,7 +248,8 @@ const GrnVerificationPage: React.FC = () => {
           headers: {
             'Content-Type': 'application/json'
           }
-        }
+        },
+        auth.token
       );
 
       if (!response.ok) {
@@ -243,18 +273,18 @@ const GrnVerificationPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6 p-6">
-      <nav className="flex flex-wrap gap-2 border-b pb-4 text-sm">
+    <div className="space-y-5 p-5 md:p-6">
+      <nav className="flex flex-wrap gap-2 pb-2 text-sm">
         <Link
           to="/dashboard/purchasing"
-          className="rounded-lg border bg-white px-4 py-2"
+          className="rounded-lg border border-[#E2E8E5] bg-white px-4 py-2 hover:bg-emerald-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600"
         >
           GRN Register
         </Link>
 
         <Link
           to="/dashboard/purchasing/distributors"
-          className="rounded-lg border bg-white px-4 py-2"
+          className="rounded-lg border border-[#E2E8E5] bg-white px-4 py-2 hover:bg-emerald-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600"
         >
           Distributors
         </Link>
@@ -265,17 +295,17 @@ const GrnVerificationPage: React.FC = () => {
       </nav>
 
       <div>
-        <h1 className="text-3xl font-bold text-emerald-950">
+        <h1 className="text-2xl font-bold text-emerald-950">
           GRN Verification
         </h1>
 
         <p className="mt-1 text-sm text-gray-500">
-          Review unconfirmed goods received notes through
-          independent verification.
+          Track GRNs awaiting verification, returned for corrections,
+          or reversed.
         </p>
       </div>
 
-      <section className="rounded-xl border bg-white p-5">
+      <section className="rounded-xl bg-white p-5">
         <div className="grid gap-4 md:grid-cols-2">
           <label className="space-y-2 text-sm">
             <span>Search queue</span>
@@ -287,7 +317,7 @@ const GrnVerificationPage: React.FC = () => {
                 setPage(1);
               }}
               placeholder="Search GRN number, invoice number, or distributor"
-              className="w-full rounded-lg border p-3"
+              className="w-full rounded-lg border border-[#E2E8E5] p-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600"
             />
           </label>
 
@@ -300,13 +330,13 @@ const GrnVerificationPage: React.FC = () => {
                 setStatus(e.target.value);
                 setPage(1);
               }}
-              className="w-full rounded-lg border p-3"
+              className="w-full rounded-lg border border-[#E2E8E5] p-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600"
             >
               {statuses.map((value) => (
                 <option key={value} value={value}>
                   {value === 'ALL'
                     ? 'All statuses'
-                    : formatStatus(value)}
+                    : formatGrnStatus(value)}
                 </option>
               ))}
             </select>
@@ -314,7 +344,9 @@ const GrnVerificationPage: React.FC = () => {
         </div>
 
         <div className="mt-4 text-xs text-emerald-700">
-          Awaiting My Verification
+          Awaiting verification: {filtered.filter(
+            (grn) => grn.status === 'PENDING_VERIFICATION'
+          ).length}
         </div>
       </section>
 
@@ -336,14 +368,14 @@ const GrnVerificationPage: React.FC = () => {
         </div>
       )}
 
-      <section className="overflow-hidden rounded-xl border bg-white">
-        <div className="border-b p-4">
+      <section className="overflow-hidden rounded-xl border border-[#E2E8E5] bg-white">
+        <div className="border-b border-[#E2E8E5] p-4">
           <h2 className="font-semibold text-emerald-950">
             GRN Verification Queue
           </h2>
 
           <p className="text-xs text-gray-500">
-            {filtered.length} unconfirmed records
+            {filtered.length} non-confirmed records
           </p>
         </div>
 
@@ -372,22 +404,18 @@ const GrnVerificationPage: React.FC = () => {
               {visible.map((grn) => (
                 <tr
                   key={grn._id}
-                  className="border-t"
+                  className="border-t border-[#E2E8E5]"
                 >
                   <td className="p-3 font-semibold text-emerald-800">
                     {grn.grnNumber}
                   </td>
 
                   <td className="p-3">
-                    {grn.receivedDate
-                      ? new Date(
-                          grn.receivedDate
-                        ).toLocaleDateString('en-GB')
-                      : '—'}
+                    {formatGrnDate(grn.receivedDate)}
                   </td>
 
                   <td className="p-3">
-                    {supplierName(grn)}
+                    {supplierName(grn, suppliers)}
                   </td>
 
                   <td className="p-3">
@@ -408,7 +436,7 @@ const GrnVerificationPage: React.FC = () => {
 
                   <td className="p-3">
                     <span className="rounded-full bg-gray-100 px-3 py-1 text-xs">
-                      {formatStatus(grn.status)}
+                      {formatGrnStatus(grn.status)}
                     </span>
                   </td>
 
@@ -420,10 +448,8 @@ const GrnVerificationPage: React.FC = () => {
                         View
                       </Link>
 
-                      {(
-                        grn.status === 'DRAFT' ||
-                        grn.status === 'CHANGES_REQUESTED'
-                      ) && (
+                      {auth.hasPermission('grn:create') &&
+                        grn.status === 'DRAFT' && (
                         <Link
                           to={`/dashboard/purchasing/grns/${grn._id}/edit`}
                         >
@@ -431,10 +457,8 @@ const GrnVerificationPage: React.FC = () => {
                         </Link>
                       )}
 
-                      {(
-                        grn.status === 'DRAFT' ||
-                        grn.status === 'CHANGES_REQUESTED'
-                      ) && (
+                      {auth.hasPermission('grn:submit') &&
+                        grn.status === 'DRAFT' && (
                         <button
                           type="button"
                           disabled={
@@ -445,9 +469,7 @@ const GrnVerificationPage: React.FC = () => {
                           }
                           className="disabled:opacity-50"
                         >
-                          {grn.status === 'DRAFT'
-                            ? 'Submit for Verification'
-                            : 'Resubmit'}
+                          Submit for Verification
                         </button>
                       )}
 
@@ -484,7 +506,7 @@ const GrnVerificationPage: React.FC = () => {
           )}
         </div>
 
-        <div className="flex justify-between border-t p-4 text-sm">
+        <div className="flex justify-between border-t border-[#E2E8E5] p-4 text-sm">
           <span>
             Showing {visible.length} of {filtered.length} GRNs
           </span>

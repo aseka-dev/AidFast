@@ -40,7 +40,7 @@ const GrnItemTable: React.FC<Props> = ({
     onChange(items.filter((_, i) => i !== index));
 
   return (
-    <section className="rounded-xl border border-gray-200 bg-white p-5">
+    <section className="rounded-xl border border-[#E2E8E5] bg-white p-5">
       <div className="mb-5 flex items-center justify-between gap-3">
         <div>
           <h2 className="text-lg font-semibold text-emerald-950">
@@ -79,7 +79,7 @@ const GrnItemTable: React.FC<Props> = ({
 
           <tbody>
             {items.map((item, index) => (
-              <tr key={index} className="border-t border-gray-100">
+              <tr key={index} className="border-t border-[#E2E8E5]">
                 <td className="p-2">
                   <select
                     aria-label="Medicine"
@@ -87,7 +87,7 @@ const GrnItemTable: React.FC<Props> = ({
                     onChange={(e) =>
                       updateItem(index, 'medicineId', e.target.value)
                     }
-                    className="w-44 rounded border p-2"
+                    className="w-44 rounded border border-[#E2E8E5] p-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600"
                   >
                     <option value="">Select medicine</option>
                     {medicines.map((medicine) => (
@@ -105,7 +105,7 @@ const GrnItemTable: React.FC<Props> = ({
                     onChange={(e) =>
                       updateItem(index, 'batchNumber', e.target.value)
                     }
-                    className="w-32 rounded border p-2"
+                    className="w-32 rounded border border-[#E2E8E5] p-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600"
                   />
                 </td>
 
@@ -117,7 +117,7 @@ const GrnItemTable: React.FC<Props> = ({
                     onChange={(e) =>
                       updateItem(index, 'expiryDate', e.target.value)
                     }
-                    className="rounded border p-2"
+                    className="rounded border border-[#E2E8E5] p-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600"
                   />
                 </td>
 
@@ -138,7 +138,7 @@ const GrnItemTable: React.FC<Props> = ({
                       onChange={(e) =>
                         updateItem(index, field, e.target.value)
                       }
-                      className="w-24 rounded border p-2"
+                      className="w-24 rounded border border-[#E2E8E5] p-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600"
                     />
                   </td>
                 )).reduce<React.ReactNode[]>((cells, cell, i) => {
@@ -180,7 +180,7 @@ const GrnItemTable: React.FC<Props> = ({
         )}
       </div>
 
-      <div className="mt-5 border-t pt-4 text-right">
+      <div className="mt-5 border-t border-[#E2E8E5] pt-4 text-right">
         <span className="mr-4 font-medium">GRN Total (LKR)</span>
         <span className="text-xl font-bold text-emerald-800">
           {calculateGrnTotal(items).toLocaleString('en-LK', {
