@@ -1,19 +1,30 @@
 import { Response, NextFunction } from 'express';
 import { AuthRequest } from './authMiddleware';
-import { TenantAccessError, BadRequestError } from '../utils/errors';
 
 // Rejects requests where the URL pharmacy differs from the pharmacy in the token.
 const matchPharmacyParam = (
     req: AuthRequest,
-    _res: Response,
+    res: Response,
     next: NextFunction
 ): void => {
     if (!req.user?.pharmacyId) {
-        return next(new BadRequestError('Please select a pharmacy first', 'PHARMACY_SELECTION_REQUIRED'));
+        res.status(400).json({
+            success: false,
+            status: 'fail',
+            code: 'PHARMACY_SELECTION_REQUIRED',
+            message: 'Please select a pharmacy first'
+        });
+        return;
     }
 
     if (String(req.params.pharmacyId) !== String(req.user.pharmacyId)) {
-        return next(new TenantAccessError('You cannot access another pharmacy'));
+        res.status(403).json({
+            success: false,
+            status: 'fail',
+            code: 'CROSS_PHARMACY_ACCESS_DENIED',
+            message: 'You cannot access another pharmacy'
+        });
+        return;
     }
 
     next();
