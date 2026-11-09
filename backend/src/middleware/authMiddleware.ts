@@ -33,6 +33,8 @@ export const authenticate = async (
 
         if (!authHeader || !authHeader.startsWith('Bearer ')) {
             res.status(401).json({
+                success: false,
+                code: 'INVALID_TOKEN',
                 message: 'Authentication token required'
             });
             return;
@@ -113,6 +115,8 @@ export const authenticate = async (
 
     } catch (error) {
         res.status(401).json({
+            success: false,
+            code: 'INVALID_TOKEN',
             message: 'Invalid or expired authentication token'
         });
     }
@@ -125,6 +129,9 @@ export const requireSelectedPharmacy = (
 ): void => {
     if (!req.user?.pharmacyId) {
         res.status(400).json({
+            success: false,
+            status: 'fail',
+            code: 'PHARMACY_SELECTION_REQUIRED',
             message: 'Please select a pharmacy first'
         });
         return;
