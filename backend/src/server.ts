@@ -30,6 +30,7 @@ import {
 } from './middleware/authMiddleware';
 
 import matchPharmacyParam from './middleware/matchPharmacyParam';
+import errorHandler from './middleware/errorHandler';
 
 // Load environment variables from backend/.env
 dotenv.config({
@@ -134,6 +135,9 @@ app.use((_req, res) => {
         message: 'Route not found'
     });
 });
+
+// Centralized error handler
+app.use(errorHandler);
 
 // Server port
 const PORT = Number(process.env.PORT) || 5000;

@@ -11,6 +11,8 @@ const requirePermission = (permission: string | string[]) => {
     ): void => {
         if (!req.user?.pharmacyId) {
             res.status(403).json({
+                success: false,
+                code: 'PHARMACY_SELECTION_REQUIRED',
                 message: 'Pharmacy selection required'
             });
             return;
@@ -26,6 +28,8 @@ const requirePermission = (permission: string | string[]) => {
 
         if (!hasPermission) {
             res.status(403).json({
+                success: false,
+                code: 'PERMISSION_DENIED',
                 message: 'You do not have permission to perform this action'
             });
             return;
