@@ -6,7 +6,6 @@ const movementTypes: MovementType[] = [
   'DAMAGE', 'EXPIRY', 'ADJUSTMENT', 'REVERSAL'
 ];
 
-// Immutable record of a posted inventory change. Do not use the model for draft events.
 const stockMovementSchema = new Schema({
   pharmacyId: { type: Schema.Types.ObjectId, ref: 'Pharmacy', required: true },
   medicineId: { type: Schema.Types.ObjectId, ref: 'MedicineCatalog', required: true },
@@ -35,6 +34,15 @@ stockMovementSchema.pre('validate', function () {
 stockMovementSchema.pre('save', function () {
   if (!this.isNew) throw new Error('Stock movements are immutable; record a reversal instead');
 });
+
+stockMovementSchema.pre(
+  /^(updateOne|updateMany|findOneAndUpdate|replaceOne|deleteOne|deleteMany|findOneAndDelete)$/,
+  function () {
+    throw new Error(
+      'Posted stock movements are immutable. Record a reversal instead.'
+    );
+  }
+);
 
 stockMovementSchema.index({ pharmacyId: 1, idempotencyKey: 1 }, { unique: true });
 stockMovementSchema.index({ pharmacyId: 1, batchId: 1, occurredAt: -1 });
