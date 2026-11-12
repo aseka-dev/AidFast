@@ -106,7 +106,7 @@ app.use((_req, res) => {
 });
 
 // Server port
-const PORT = Number(process.env.PORT) || 5000;
+const PORT = Number(process.env.PORT) || 8080;
 
 // Start server
 const startServer = async () => {
