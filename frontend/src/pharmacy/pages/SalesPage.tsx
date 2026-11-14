@@ -75,9 +75,37 @@ const SalesPage: React.FC = () => {
     }
   }, [pharmacyId, token]);
 
-  useEffect(() => {
-    void loadHistory();
-  }, [loadHistory]);
+
+useEffect(() => {
+  if (!pharmacyId || !token) return;
+
+  let cancelled = false;
+
+  const fetchHistory = async () => {
+    try {
+      const sales = await getSaleHistory(pharmacyId, token);
+
+      if (!cancelled) {
+        setHistory(sales);
+      }
+    } catch (err) {
+      if (!cancelled) {
+        setError(
+          err instanceof Error
+            ? err.message
+            : "Unable to load sale history"
+        );
+      }
+    }
+  };
+
+  void fetchHistory();
+
+  return () => {
+    cancelled = true;
+  };
+}, [pharmacyId, token]);
+
 
   const addItem = () => {
     setError("");

@@ -12,6 +12,7 @@ import settingsRoutes from './routes/settingsRoutes';
 import userRoutes from './routes/userRoutes';
 
 import supplierRoutes from './routes/supplierRoutes';
+import purchaseOrderRoutes from './routes/purchaseOrderRoutes';
 import grnRoutes from './routes/grnRoutes';
 
 import medicineRequestRoutes from './routes/medicineRequestRoutes';
@@ -20,8 +21,18 @@ import publicPharmacyRoutes from './routes/publicPharmacyRoutes';
 import alertRoutes from './routes/alertRoutes';
 import safetyRoutes from './routes/safetyRoutes';
 
-import salesRoutes from "./routes/salesRoutes";
+import medicineRoutes from './routes/medicineRoutes';
+import batchRoutes from './routes/batchRoutes';
 
+import salesRoutes from './routes/salesRoutes';
+
+import {
+  authenticate,
+  requireSelectedPharmacy
+} from './middleware/authMiddleware';
+
+import matchPharmacyParam from './middleware/matchPharmacyParam';
+import errorHandler from './middleware/errorHandler';
 
 // Load environment variables from backend/.env
 dotenv.config({
@@ -94,6 +105,8 @@ app.use(
     supplierRoutes
 );
 
+app.use('/api/v1/pharmacies/:pharmacyId/purchase-orders', purchaseOrderRoutes);
+
 // GRN API
 app.use(
     '/api/v1/pharmacies/:pharmacyId/grns',
@@ -102,8 +115,27 @@ app.use(
 
 
 app.use(
-  '/api/v1/pharmacies/:pharmacyId/sales',
+  "/api/v1/pharmacies/:pharmacyId/sales",
   salesRoutes
+);
+
+
+// Medicine Catalog API
+app.use(
+  '/api/v1/pharmacies/:pharmacyId/medicines',
+  authenticate,
+  requireSelectedPharmacy,
+  matchPharmacyParam,
+  medicineRoutes
+);
+
+// Batch Management API
+app.use(
+  '/api/v1/pharmacies/:pharmacyId/batches',
+  authenticate,
+  requireSelectedPharmacy,
+  matchPharmacyParam,
+  batchRoutes
 );
 
 app.use((_req, res) => {
@@ -113,6 +145,9 @@ app.use((_req, res) => {
     });
 });
 
+// Centralized error handler
+app.use(errorHandler);
+
 // Server port
 const PORT = Number(process.env.PORT) || 8080;
 
@@ -121,7 +156,7 @@ const startServer = async () => {
     try {
         await connectDB();
 
-        app.listen(PORT, () => {
+        app.listen(PORT, "0.0.0.0" , () => {
             console.log(`AidFast server running on port ${PORT}`);
             console.log(
                 `Health check: http://localhost:${PORT}/api/health`
