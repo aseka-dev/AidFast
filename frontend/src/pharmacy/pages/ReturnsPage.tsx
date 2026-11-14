@@ -1,6 +1,14 @@
 
 import { useState } from "react";
 
+type ReturnStatus = "Pending Review" | "Approved" | "Rejected";
+
+type ReturnDisposition =
+  | "QUARANTINE"
+  | "DAMAGED"
+  | "RETURN_TO_SUPPLIER"
+  | "RESTOCK_APPROVED";
+
 type ReturnRecord = {
   id: number;
   saleId: string;
@@ -8,6 +16,8 @@ type ReturnRecord = {
   quantity: number;
   reason: string;
   condition: string;
+  status: ReturnStatus;
+  disposition: ReturnDisposition | null;
 };
 
 const medicines = [
@@ -25,6 +35,7 @@ export default function ReturnsPage() {
   const [returns, setReturns] = useState<ReturnRecord[]>([]);
   const [error, setError] = useState("");
 
+  // Add a new customer return
   const handleAddReturn = () => {
     if (!saleId.trim() || !medicine || !reason || !condition) {
       setError("Please fill in all required fields.");
@@ -43,11 +54,14 @@ export default function ReturnsPage() {
       quantity,
       reason,
       condition,
+      status: "Pending Review",
+      disposition: null,
     };
 
     setReturns((previous) => [...previous, newReturn]);
     setError("");
 
+    // Reset form
     setSaleId("");
     setMedicine("");
     setQuantity(1);
@@ -55,23 +69,47 @@ export default function ReturnsPage() {
     setCondition("");
   };
 
+  // Review a pending return
+  const handleReviewReturn = (
+    id: number,
+    status: "Approved" | "Rejected",
+    disposition: ReturnDisposition | null = null
+  ) => {
+    setReturns((previous) =>
+      previous.map((item) =>
+        item.id === id && item.status === "Pending Review"
+          ? {
+              ...item,
+              status,
+              disposition:
+                status === "Approved" ? disposition : null,
+            }
+          : item
+      )
+    );
+  };
+
   return (
     <div className="space-y-6 p-6">
+      {/* Page Header */}
       <div>
         <h1 className="text-2xl font-bold text-gray-800">
-          Medicine Returns
+          Returns & Disposal
         </h1>
         <p className="mt-1 text-sm text-gray-500">
-          Record and review medicines returned by customers.
+          Record and review returned medicines and manage
+          their disposition.
         </p>
       </div>
 
+      {/* New Return Form */}
       <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
         <h2 className="mb-5 text-lg font-semibold text-gray-800">
-          New Return
+          New Customer Return
         </h2>
 
         <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+          {/* Sale ID */}
           <div>
             <label className="mb-2 block text-sm font-medium">
               Sale ID *
@@ -85,6 +123,7 @@ export default function ReturnsPage() {
             />
           </div>
 
+          {/* Medicine */}
           <div>
             <label className="mb-2 block text-sm font-medium">
               Medicine *
@@ -103,6 +142,7 @@ export default function ReturnsPage() {
             </select>
           </div>
 
+          {/* Quantity */}
           <div>
             <label className="mb-2 block text-sm font-medium">
               Return Quantity *
@@ -112,11 +152,14 @@ export default function ReturnsPage() {
               min="1"
               step="1"
               value={quantity}
-              onChange={(e) => setQuantity(Number(e.target.value))}
+              onChange={(e) =>
+                setQuantity(Number(e.target.value))
+              }
               className="w-full rounded-lg border border-gray-300 p-3"
             />
           </div>
 
+          {/* Reason */}
           <div>
             <label className="mb-2 block text-sm font-medium">
               Return Reason *
@@ -127,7 +170,9 @@ export default function ReturnsPage() {
               className="w-full rounded-lg border border-gray-300 p-3"
             >
               <option value="">Select reason</option>
-              <option value="Wrong medicine">Wrong medicine</option>
+              <option value="Wrong medicine">
+                Wrong medicine
+              </option>
               <option value="Damaged packaging">
                 Damaged packaging
               </option>
@@ -138,6 +183,7 @@ export default function ReturnsPage() {
             </select>
           </div>
 
+          {/* Condition */}
           <div>
             <label className="mb-2 block text-sm font-medium">
               Medicine Condition *
@@ -156,12 +202,14 @@ export default function ReturnsPage() {
           </div>
         </div>
 
+        {/* Validation Error */}
         {error && (
-          <p className="mt-4 text-sm font-medium text-red-600">
+          <p role="alert" className="mt-4 text-sm font-medium text-red-600">
             {error}
           </p>
         )}
 
+        {/* Add Button */}
         <div className="mt-6 flex justify-end">
           <button
             type="button"
@@ -173,6 +221,7 @@ export default function ReturnsPage() {
         </div>
       </div>
 
+      {/* Return Records */}
       <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
         <h2 className="mb-4 text-lg font-semibold text-gray-800">
           Return Records (Demo)
@@ -188,6 +237,8 @@ export default function ReturnsPage() {
                 <th className="p-3">Reason</th>
                 <th className="p-3">Condition</th>
                 <th className="p-3">Status</th>
+                <th className="p-3">Disposition</th>
+                <th className="p-3">Actions</th>
               </tr>
             </thead>
 
@@ -199,10 +250,63 @@ export default function ReturnsPage() {
                   <td className="p-3">{item.quantity}</td>
                   <td className="p-3">{item.reason}</td>
                   <td className="p-3">{item.condition}</td>
+
+                  {/* Status Badge */}
                   <td className="p-3">
-                    <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-medium text-amber-800">
-                      Pending Review
+                    <span
+                      className={`rounded-full px-3 py-1 text-xs font-medium ${
+                        item.status === "Approved"
+                          ? "bg-green-100 text-green-800"
+                          : item.status === "Rejected"
+                          ? "bg-red-100 text-red-800"
+                          : "bg-amber-100 text-amber-800"
+                      }`}
+                    >
+                      {item.status}
                     </span>
+                  </td>
+
+                  {/* Disposition */}
+                  <td className="p-3">
+                    {item.disposition ?? "Not assigned"}
+                  </td>
+
+                  {/* Review Actions */}
+                  <td className="p-3">
+                    {item.status === "Pending Review" ? (
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            handleReviewReturn(
+                              item.id,
+                              "Approved",
+                              "QUARANTINE"
+                            )
+                          }
+                          className="rounded bg-emerald-700 px-3 py-2 text-white hover:bg-emerald-800"
+                        >
+                          Approve
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() =>
+                            handleReviewReturn(
+                              item.id,
+                              "Rejected"
+                            )
+                          }
+                          className="rounded bg-red-600 px-3 py-2 text-white hover:bg-red-700"
+                        >
+                          Reject
+                        </button>
+                      </div>
+                    ) : (
+                      <span className="text-gray-400">
+                        Reviewed
+                      </span>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -210,7 +314,7 @@ export default function ReturnsPage() {
               {returns.length === 0 && (
                 <tr>
                   <td
-                    colSpan={6}
+                    colSpan={8}
                     className="p-6 text-center text-gray-500"
                   >
                     No returns recorded yet.
@@ -221,11 +325,12 @@ export default function ReturnsPage() {
           </table>
         </div>
 
-        <p className="mt-4 text-xs stext-gray-500">
-          Demo only. Returns are not saved to the database,
-          verified against sales, or added back to stock.
-          Returned medicines require review before any
-          inventory adjustment.
+        <p className="mt-4 text-xs text-gray-500">
+          Demo only. Returns are stored in temporary frontend
+          state. They are not verified against original sales,
+          saved to the database, or added back to inventory.
+          Approval assigns quarantine for future backend
+          processing and does not change stock.
         </p>
       </div>
     </div>
