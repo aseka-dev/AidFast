@@ -12,6 +12,10 @@ import {
   getSaleHistory
 } from "../services/salesApi";
 
+
+import FIFOAllocationPreview from "../components/FIFOAllocationPreview";
+
+
 import type {
   DraftSaleItem,
   SaleRecord
@@ -139,6 +143,17 @@ useEffect(() => {
     setMedicineId("");
     setQuantity(1);
   };
+
+
+{pharmacyId && token && medicineId && quantity > 0 && (
+  <FIFOAllocationPreview
+    pharmacyId={pharmacyId}
+    token={token}
+    medicineId={medicineId}
+    quantity={quantity}
+  />
+)}
+
 
   const removeItem = (id: string) => {
     setItems((previous) =>
