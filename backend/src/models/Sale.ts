@@ -1,101 +1,55 @@
 
-import mongoose, { Schema, Document } from "mongoose";
+import mongoose, { Schema } from "mongoose";
 
-export interface ISale extends Document {
-  saleNumber: string;
-  saleDate: Date;
-  totalAmount: number;
-  discount: number;
-  netAmount: number;
-  paymentMethod: "cash" | "card" | "online";
-  paymentStatus: "paid" | "pending";
-  createdBy: mongoose.Types.ObjectId;
-  status: "completed" | "cancelled";
-}
-
-const SaleSchema = new Schema<ISale>(
+const saleSchema = new Schema(
   {
+    pharmacyId: {
+      type: Schema.Types.ObjectId,
+      ref: "Pharmacy",
+      required: true,
+      index: true
+    },
     saleNumber: {
       type: String,
-      required: true,
-      unique: true,
-      trim: true
-    },
-
-    saleDate: {
-      type: Date,
-      required: true,
-      default: Date.now
-    },
-
-    totalAmount: {
-      type: Number,
-      required: true,
-      min: 0
-    },
-
-    discount: {
-      type: Number,
-      default: 0,
-      min: 0
-    },
-
-    netAmount: {
-      type: Number,
-      required: true,
-      min: 0
-    },
-
-    paymentMethod: {
-      type: String,
-      enum: ["cash", "card", "online"],
       required: true
     },
-
-    paymentStatus: {
-      type: String,
-      enum: ["paid", "pending"],
-      default: "paid"
+    saleDate: {
+      type: Date,
+      default: Date.now
     },
-
+    subtotal: {
+      type: Schema.Types.Decimal128,
+      required: true
+    },
+    discountAmount: {
+      type: Schema.Types.Decimal128,
+      default: 0
+    },
+    totalAmount: {
+      type: Schema.Types.Decimal128,
+      required: true
+    },
+    paymentMethod: {
+      type: String,
+      default: "NOT_SELECTED"
+    },
+    status: {
+      type: String,
+      enum: ["DRAFT", "COMPLETED", "VOIDED"],
+      default: "DRAFT"
+    },
     createdBy: {
       type: Schema.Types.ObjectId,
       ref: "User",
       required: true
-    },
-
-    status: {
-      type: String,
-      enum: ["completed", "cancelled"],
-      default: "completed"
     }
   },
-  {
-    timestamps: true
-  }
+  { timestamps: true }
 );
 
-SaleSchema.pre("validate", function () {
-  if (this.discount > this.totalAmount) {
-    this.invalidate(
-      "discount",
-      "Discount cannot exceed total amount"
-    );
-  }
+saleSchema.index(
+  { pharmacyId: 1, saleNumber: 1 },
+  { unique: true }
+);
 
-  if (
-    Math.abs(
-      this.netAmount -
-      (this.totalAmount - this.discount)
-    ) > 0.001
-  ) {
-    this.invalidate(
-      "netAmount",
-      "Net amount must equal total minus discount"
-    );
-  }
-});
-
-const Sale = mongoose.model<ISale>("Sale", SaleSchema);
-
-export default Sale;
+export default mongoose.model("Sale", saleSchema);

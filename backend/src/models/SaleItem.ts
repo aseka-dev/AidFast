@@ -1,76 +1,42 @@
 
-import mongoose, { Schema, Document } from "mongoose";
+import mongoose, { Schema } from "mongoose";
 
-export interface ISaleItem extends Document {
-  saleId: mongoose.Types.ObjectId;
-  medicineId: mongoose.Types.ObjectId;
-  quantity: number;
-  unitPrice: number;
-  subtotal: number;
-}
-
-const SaleItemSchema = new Schema<ISaleItem>(
+const saleItemSchema = new Schema(
   {
+    pharmacyId: {
+      type: Schema.Types.ObjectId,
+      ref: "Pharmacy",
+      required: true,
+      index: true
+    },
     saleId: {
       type: Schema.Types.ObjectId,
       ref: "Sale",
       required: true
     },
-
     medicineId: {
       type: Schema.Types.ObjectId,
-      ref: "Medicine",
+      ref: "MedicineCatalog",
       required: true
     },
-
     quantity: {
       type: Number,
       required: true,
       min: 1,
-      validate: {
-        validator: Number.isInteger,
-        message: "Quantity must be a whole number"
-      }
+      validate: Number.isInteger
     },
-
     unitPrice: {
-      type: Number,
-      required: true,
-      min: 0
+      type: Schema.Types.Decimal128,
+      required: true
     },
-
     subtotal: {
-      type: Number,
-      required: true,
-      min: 0
+      type: Schema.Types.Decimal128,
+      required: true
     }
   },
-  {
-    timestamps: true
-  }
+  { timestamps: true }
 );
 
-// Validate subtotal before saving
-SaleItemSchema.pre("validate", function () {
-  const expectedSubtotal = this.quantity * this.unitPrice;
+saleItemSchema.index({ pharmacyId: 1, saleId: 1 });
 
-  if (
-    Number.isFinite(expectedSubtotal) &&
-    Math.abs(this.subtotal - expectedSubtotal) > 0.001
-  ) {
-    this.invalidate(
-      "subtotal",
-      "Subtotal must equal quantity multiplied by unit price"
-    );
-  }
-});
-
-// Index for faster sale item lookup
-SaleItemSchema.index({ saleId: 1 });
-
-const SaleItem = mongoose.model<ISaleItem>(
-  "SaleItem",
-  SaleItemSchema
-);
-
-export default SaleItem;
+export default mongoose.model("SaleItem", saleItemSchema);
