@@ -1,25 +1,12 @@
-
-import React, {
-  useCallback,
-  useEffect,
-  useState
-} from "react";
+import React, { useCallback, useEffect, useState } from "react";
 
 import useAuth from "../../shared/context/useAuth";
 
-import {
-  createDraftSale,
-  getSaleHistory
-} from "../services/salesApi";
+import { createDraftSale, getSaleHistory } from "../services/salesApi";
 
+import FIFOAllocationPreview from "../components/sales/FIFOAllocationPreview";
 
-import FIFOAllocationPreview from "../components/FIFOAllocationPreview";
-
-
-import type {
-  DraftSaleItem,
-  SaleRecord
-} from "../services/salesApi";
+import type { DraftSaleItem, SaleRecord } from "../services/salesApi";
 
 type FormItem = DraftSaleItem & {
   id: string;
@@ -30,18 +17,18 @@ const demoMedicines = [
   {
     id: "replace-with-real-medicine-id-1",
     name: "Paracetamol 500mg",
-    price: 15
+    price: 15,
   },
   {
     id: "replace-with-real-medicine-id-2",
     name: "Amoxicillin 500mg",
-    price: 45
+    price: 45,
   },
   {
     id: "replace-with-real-medicine-id-3",
     name: "Salbutamol Inhaler 100mcg",
-    price: 850
-  }
+    price: 850,
+  },
 ];
 
 // Replace demoMedicines with M2's catalog API
@@ -61,7 +48,7 @@ const SalesPage: React.FC = () => {
   const [message, setMessage] = useState("");
 
   const selectedMedicine = demoMedicines.find(
-    (medicine) => medicine.id === medicineId
+    (medicine) => medicine.id === medicineId,
   );
 
   const loadHistory = useCallback(async () => {
@@ -72,44 +59,38 @@ const SalesPage: React.FC = () => {
       setHistory(sales);
     } catch (err) {
       setError(
-        err instanceof Error
-          ? err.message
-          : "Unable to load sale history"
+        err instanceof Error ? err.message : "Unable to load sale history",
       );
     }
   }, [pharmacyId, token]);
 
+  useEffect(() => {
+    if (!pharmacyId || !token) return;
 
-useEffect(() => {
-  if (!pharmacyId || !token) return;
+    let cancelled = false;
 
-  let cancelled = false;
+    const fetchHistory = async () => {
+      try {
+        const sales = await getSaleHistory(pharmacyId, token);
 
-  const fetchHistory = async () => {
-    try {
-      const sales = await getSaleHistory(pharmacyId, token);
-
-      if (!cancelled) {
-        setHistory(sales);
+        if (!cancelled) {
+          setHistory(sales);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError(
+            err instanceof Error ? err.message : "Unable to load sale history",
+          );
+        }
       }
-    } catch (err) {
-      if (!cancelled) {
-        setError(
-          err instanceof Error
-            ? err.message
-            : "Unable to load sale history"
-        );
-      }
-    }
-  };
+    };
 
-  void fetchHistory();
+    void fetchHistory();
 
-  return () => {
-    cancelled = true;
-  };
-}, [pharmacyId, token]);
-
+    return () => {
+      cancelled = true;
+    };
+  }, [pharmacyId, token]);
 
   const addItem = () => {
     setError("");
@@ -136,35 +117,21 @@ useEffect(() => {
         medicineId: selectedMedicine.id,
         medicineName: selectedMedicine.name,
         quantity,
-        unitPrice: selectedMedicine.price
-      }
+        unitPrice: selectedMedicine.price,
+      },
     ]);
 
     setMedicineId("");
     setQuantity(1);
   };
 
-
-{pharmacyId && token && medicineId && quantity > 0 && (
-  <FIFOAllocationPreview
-    pharmacyId={pharmacyId}
-    token={token}
-    medicineId={medicineId}
-    quantity={quantity}
-  />
-)}
-
-
   const removeItem = (id: string) => {
-    setItems((previous) =>
-      previous.filter((item) => item.id !== id)
-    );
+    setItems((previous) => previous.filter((item) => item.id !== id));
   };
 
   const total = items.reduce(
-    (sum, item) =>
-      sum + item.quantity * item.unitPrice,
-    0
+    (sum, item) => sum + item.quantity * item.unitPrice,
+    0,
   );
 
   const saveDraft = async () => {
@@ -189,30 +156,23 @@ useEffect(() => {
         items.map(({ medicineId, quantity, unitPrice }) => ({
           medicineId,
           quantity,
-          unitPrice
-        }))
+          unitPrice,
+        })),
       );
 
       setMessage(`Draft ${sale.saleNumber} saved successfully`);
       setItems([]);
       await loadHistory();
     } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Unable to save draft"
-      );
+      setError(err instanceof Error ? err.message : "Unable to save draft");
     } finally {
       setSaving(false);
     }
   };
 
-  const amount = (
-    value: SaleRecord["totalAmount"]
-  ): string => {
-    const number = typeof value === "string"
-      ? Number(value)
-      : Number(value.$numberDecimal);
+  const amount = (value: SaleRecord["totalAmount"]): string => {
+    const number =
+      typeof value === "string" ? Number(value) : Number(value.$numberDecimal);
 
     return number.toFixed(2);
   };
@@ -235,21 +195,20 @@ useEffect(() => {
       )}
 
       {message && (
-        <div role="status" className="rounded-lg bg-green-50 p-4 text-green-700">
+        <div
+          role="status"
+          className="rounded-lg bg-green-50 p-4 text-green-700"
+        >
           {message}
         </div>
       )}
 
       <div className="rounded-xl border bg-white p-6 space-y-5">
-        <h2 className="text-lg font-semibold">
-          New Sale Draft
-        </h2>
+        <h2 className="text-lg font-semibold">New Sale Draft</h2>
 
         <div className="grid gap-4 md:grid-cols-3">
           <div>
-            <label className="block mb-2 text-sm">
-              Medicine
-            </label>
+            <label className="block mb-2 text-sm">Medicine</label>
             <select
               value={medicineId}
               onChange={(e) => setMedicineId(e.target.value)}
@@ -265,9 +224,7 @@ useEffect(() => {
           </div>
 
           <div>
-            <label className="block mb-2 text-sm">
-              Quantity
-            </label>
+            <label className="block mb-2 text-sm">Quantity</label>
             <input
               type="number"
               min="1"
@@ -279,9 +236,7 @@ useEffect(() => {
           </div>
 
           <div>
-            <label className="block mb-2 text-sm">
-              Unit Price (LKR)
-            </label>
+            <label className="block mb-2 text-sm">Unit Price (LKR)</label>
             <input
               type="number"
               readOnly
@@ -290,6 +245,15 @@ useEffect(() => {
             />
           </div>
         </div>
+
+        
+{selectedMedicine && quantity > 0 && (
+  <FIFOAllocationPreview
+    medicine={selectedMedicine.name}
+    quantity={quantity}
+  />
+)}
+
 
         <button
           type="button"
@@ -301,9 +265,7 @@ useEffect(() => {
       </div>
 
       <div className="rounded-xl border bg-white p-6">
-        <h2 className="text-lg font-semibold mb-4">
-          Sale Items
-        </h2>
+        <h2 className="text-lg font-semibold mb-4">Sale Items</h2>
 
         <div className="overflow-x-auto">
           <table className="w-full text-left">
@@ -321,9 +283,7 @@ useEffect(() => {
                 <tr key={item.id} className="border-b">
                   <td className="p-3">{item.medicineName}</td>
                   <td className="p-3">{item.quantity}</td>
-                  <td className="p-3">
-                    {item.unitPrice.toFixed(2)}
-                  </td>
+                  <td className="p-3">{item.unitPrice.toFixed(2)}</td>
                   <td className="p-3">
                     {(item.quantity * item.unitPrice).toFixed(2)}
                   </td>
@@ -366,9 +326,7 @@ useEffect(() => {
       </div>
 
       <div className="rounded-xl border bg-white p-6">
-        <h2 className="text-lg font-semibold mb-4">
-          Sale History
-        </h2>
+        <h2 className="text-lg font-semibold mb-4">Sale History</h2>
 
         <div className="overflow-x-auto">
           <table className="w-full text-left">
@@ -387,9 +345,7 @@ useEffect(() => {
                   <td className="p-3">
                     {new Date(sale.saleDate).toLocaleDateString()}
                   </td>
-                  <td className="p-3">
-                    {amount(sale.totalAmount)}
-                  </td>
+                  <td className="p-3">{amount(sale.totalAmount)}</td>
                   <td className="p-3">{sale.status}</td>
                 </tr>
               ))}

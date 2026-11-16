@@ -33,6 +33,7 @@ import {
 
 import matchPharmacyParam from './middleware/matchPharmacyParam';
 import errorHandler from './middleware/errorHandler';
+import communityRequestRoutes from './routes/communityRequestRoutes';
 
 // Load environment variables from backend/.env
 dotenv.config({
@@ -98,6 +99,8 @@ app.use(
     '/api/v1/public/pharmacies',
     publicPharmacyRoutes
 );
+
+app.use('/api/v1', communityRequestRoutes);
 
 // Supplier API
 app.use(

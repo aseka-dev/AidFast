@@ -1,16 +1,21 @@
 
 import { Router, RequestHandler } from 'express';
 import type {
-    SubmitMedicineRequestDTO,
-    TrackMedicineRequestDTO
+    SubmitMedicineRequestDTO
 } from '../dto/community.dto';
+
+import {
+    submitMedicineRequest as saveMedicineRequest
+} from '../services/medicineRequestService';
 
 const router = Router();
 
 // POST /api/v1/public/medicine-requests
-const submitMedicineRequest: RequestHandler = (req, res) => {
+const submitMedicineRequest: RequestHandler = async (req, res) => {
+
     const request = (req.body ?? {}) as Partial<SubmitMedicineRequestDTO>;
 
+    // Validate medicine name
     if (
         typeof request.medicineName !== 'string' ||
         !request.medicineName.trim()
@@ -22,47 +27,106 @@ const submitMedicineRequest: RequestHandler = (req, res) => {
         return;
     }
 
-    // Day 03 stub: no request is saved yet.
-    res.status(501).json({
-        success: false,
-        message: 'Medicine request submission is not implemented yet'
-    });
-};
-
-// POST /api/v1/public/medicine-requests/track
-const trackMedicineRequest: RequestHandler = (req, res) => {
-    const request = (req.body ?? {}) as Partial<TrackMedicineRequestDTO>;
+    // Validate request destination
     if (
-        typeof request.requestReference !== 'string' ||
-        !request.requestReference.trim() ||
-        typeof request.trackingSecret !== 'string' ||
-        !request.trackingSecret.trim()
+        request.requestDestination !== 'NEARBY_PARTICIPATING_PHARMACIES' &&
+        request.requestDestination !== 'SPECIFIC_PHARMACY'
     ) {
         res.status(400).json({
             success: false,
-            message: 'Request reference and tracking secret are required'
+            message: 'Valid request destination is required'
         });
         return;
     }
 
-    // Day 03 stub: tracking verification is not implemented yet.
-    res.status(501).json({
-        success: false,
-        message: 'Medicine request tracking is not implemented yet'
-    });
-};
+    // Validate selected pharmacy
+    if (
+        request.requestDestination === 'SPECIFIC_PHARMACY' &&
+        (
+            typeof request.selectedPharmacyId !== 'string' ||
+            !request.selectedPharmacyId.trim()
+        )
+    ) {
+        res.status(400).json({
+            success: false,
+            message: 'Please select a pharmacy'
+        });
+        return;
+    }
 
-// GET /api/v1/public/medicine-requests/:reference/responses
-const getRequestResponses: RequestHandler = (_req, res) => {
-    // Do not expose responses without tracking authorization.
-    res.status(501).json({
-        success: false,
-        message: 'Authorized request responses are not implemented yet'
-    });
+    // Validate preferred area
+    if (
+        request.requestDestination === 'NEARBY_PARTICIPATING_PHARMACIES' &&
+        (
+            typeof request.preferredTownArea !== 'string' ||
+            !request.preferredTownArea.trim()
+        )
+    ) {
+        res.status(400).json({
+            success: false,
+            message: 'Preferred town or area is required'
+        });
+        return;
+    }
+
+    // Validate contact method
+    if (
+        request.contactPreference !== 'PHONE_CALL' &&
+        request.contactPreference !== 'WHATSAPP' &&
+        request.contactPreference !== 'SMS'
+    ) {
+        res.status(400).json({
+            success: false,
+            message: 'Please select a valid contact method'
+        });
+        return;
+    }
+
+    // Validate phone number
+    if (
+        typeof request.phone !== 'string' ||
+        !/^\+?[0-9]{9,15}$/.test(request.phone.trim())
+    ) {
+        res.status(400).json({
+            success: false,
+            message: 'Valid phone number is required'
+        });
+        return;
+    }
+
+    // Validate customer consent
+    if (request.consentAccepted !== true) {
+        res.status(400).json({
+            success: false,
+            message: 'Customer consent is required'
+        });
+        return;
+    }
+
+    // Submit the request through the service layer.
+// The service handles encryption and pharmacy routing.
+        try {
+        const result = await saveMedicineRequest(
+            request as SubmitMedicineRequestDTO
+        );
+
+        res.status(201).json({
+            success: true,
+            data: result
+        });
+    } catch (error) {
+        console.error(
+            'Medicine request submission failed:',
+            error instanceof Error ? error.message : 'Unknown error'
+        );
+
+        res.status(500).json({
+            success: false,
+            message: 'Unable to submit medicine request'
+        });
+    }
 };
 
 router.post('/', submitMedicineRequest);
-router.post('/track', trackMedicineRequest);
-router.get('/:reference/responses', getRequestResponses);
 
 export default router;
