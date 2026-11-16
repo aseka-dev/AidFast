@@ -10,21 +10,25 @@ export interface IMedicineAvailabilityRequest extends Document {
     dosageForm?: string;
     additionalDetails?: string;
     preferredTownArea?: string;
+
     requestDestination:
         | 'NEARBY_PARTICIPATING_PHARMACIES'
         | 'SPECIFIC_PHARMACY';
+
     selectedPharmacyId?: mongoose.Types.ObjectId;
+
     contactPreference: 'PHONE_CALL' | 'WHATSAPP' | 'SMS';
-    phoneEncrypted?: string;
+    phoneEncrypted: string;
     consentAcceptedAt: Date;
+
     requestStatus:
         | 'SUBMITTED'
         | 'ROUTED'
-        | 'RESPONSES_RECEIVED'
+        | 'CONTACTED'
         | 'CLOSED'
         | 'CANCELLED';
+
     submittedAt: Date;
-    trackingTokenHash: string;
     closedAt?: Date;
 }
 
@@ -44,7 +48,8 @@ const medicineAvailabilityRequestSchema =
             medicineName: {
                 type: String,
                 required: true,
-                trim: true
+                trim: true,
+                maxlength: 200
             },
             preferredBrandTradeName: {
                 type: String,
@@ -64,7 +69,8 @@ const medicineAvailabilityRequestSchema =
             },
             preferredTownArea: {
                 type: String,
-                trim: true
+                trim: true,
+                maxlength: 100
             },
             requestDestination: {
                 type: String,
@@ -79,14 +85,14 @@ const medicineAvailabilityRequestSchema =
                 ref: 'Pharmacy'
             },
             contactPreference: {
-    type: String,
-    enum: ['PHONE_CALL', 'WHATSAPP', 'SMS'],
-    default: 'PHONE_CALL',
-    required: true
-},
+                type: String,
+                enum: ['PHONE_CALL', 'WHATSAPP', 'SMS'],
+                required: true
+            },
             phoneEncrypted: {
                 type: String,
-                required: true
+                required: true,
+                select: false
             },
             consentAcceptedAt: {
                 type: Date,
@@ -97,7 +103,7 @@ const medicineAvailabilityRequestSchema =
                 enum: [
                     'SUBMITTED',
                     'ROUTED',
-                    'RESPONSES_RECEIVED',
+                    'CONTACTED',
                     'CLOSED',
                     'CANCELLED'
                 ],
@@ -106,11 +112,6 @@ const medicineAvailabilityRequestSchema =
             submittedAt: {
                 type: Date,
                 default: Date.now
-            },
-            trackingTokenHash: {
-                type: String,
-                required: true,
-                select: false
             },
             closedAt: {
                 type: Date

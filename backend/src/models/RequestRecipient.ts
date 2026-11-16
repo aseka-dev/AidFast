@@ -4,14 +4,21 @@ import mongoose, { Schema, Document } from 'mongoose';
 export interface IRequestRecipient extends Document {
     requestId: mongoose.Types.ObjectId;
     pharmacyId: mongoose.Types.ObjectId;
+
     deliveryStatus:
         | 'PENDING'
         | 'DELIVERED'
         | 'VIEWED'
         | 'DECLINED';
+
+    contactStatus:
+        | 'NOT_CONTACTED'
+        | 'CONTACTED'
+        | 'UNABLE_TO_CONTACT';
+
     deliveredAt?: Date;
     viewedAt?: Date;
-    respondedAt?: Date;
+    contactedAt?: Date;
 }
 
 const requestRecipientSchema = new Schema<IRequestRecipient>(
@@ -36,13 +43,22 @@ const requestRecipientSchema = new Schema<IRequestRecipient>(
             ],
             default: 'PENDING'
         },
+        contactStatus: {
+            type: String,
+            enum: [
+                'NOT_CONTACTED',
+                'CONTACTED',
+                'UNABLE_TO_CONTACT'
+            ],
+            default: 'NOT_CONTACTED'
+        },
         deliveredAt: {
             type: Date
         },
         viewedAt: {
             type: Date
         },
-        respondedAt: {
+        contactedAt: {
             type: Date
         }
     },
@@ -52,8 +68,7 @@ const requestRecipientSchema = new Schema<IRequestRecipient>(
     }
 );
 
-// Prevent sending the same request to
-// the same pharmacy more than once.
+// Prevent duplicate routing to the same pharmacy
 requestRecipientSchema.index(
     { requestId: 1, pharmacyId: 1 },
     { unique: true }
