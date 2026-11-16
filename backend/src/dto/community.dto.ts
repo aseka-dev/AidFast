@@ -7,9 +7,14 @@ export type AvailabilityStatus =
 export type RequestStatus =
     | 'SUBMITTED'
     | 'ROUTED'
-    | 'RESPONSES_RECEIVED'
+    | 'CONTACTED'
     | 'CLOSED'
     | 'CANCELLED';
+
+export type ContactPreference =
+    | 'PHONE_CALL'
+    | 'WHATSAPP'
+    | 'SMS';
 
 // Public medicine information
 export interface PublicMedicineDTO {
@@ -41,7 +46,7 @@ export interface PublicAvailabilityDTO {
     lastUpdatedAt: string;
 }
 
-// Guest medicine request input
+// Customer medicine request
 export interface SubmitMedicineRequestDTO {
     medicineName: string;
     preferredBrandTradeName?: string;
@@ -49,47 +54,45 @@ export interface SubmitMedicineRequestDTO {
     dosageForm?: string;
     additionalDetails?: string;
     preferredTownArea?: string;
+
     requestDestination:
         | 'NEARBY_PARTICIPATING_PHARMACIES'
         | 'SPECIFIC_PHARMACY';
+
     selectedPharmacyId?: string;
-    contactPreference:
-    | 'PHONE_CALL'
-    | 'WHATSAPP'
-    | 'SMS';
-phone: string;
+
+    contactPreference: ContactPreference;
+    phone: string;
+    consentAccepted: boolean;
 }
 
-// Request submission response
+// Request submission acknowledgement
+// Internal reference only; no customer tracking.
 export interface MedicineRequestReceiptDTO {
     requestReference: string;
-    trackingSecret: string;
+    requestStatus: RequestStatus;
+    submittedAt: string;
+    message: string;
+}
+
+// Pharmacy staff request information
+// Only available to authorized recipient pharmacies.
+export interface PharmacyRequestDTO {
+    requestId: string;
+    medicineName: string;
+    preferredBrandTradeName?: string;
+    strength?: string;
+    dosageForm?: string;
+    additionalDetails?: string;
+    preferredTownArea?: string;
+    contactPreference: ContactPreference;
+    phone: string;
     requestStatus: RequestStatus;
     submittedAt: string;
 }
 
-// Request tracking input
-export interface TrackMedicineRequestDTO {
-    requestReference: string;
-    trackingSecret: string;
-}
-
-// Safe request tracking response
-export interface RequestTrackingDTO {
-    requestReference: string;
-    requestStatus: RequestStatus;
-    submittedAt: string;
-    responses: PharmacyResponseDTO[];
-}
-
-// Approved pharmacy response
-export interface PharmacyResponseDTO {
-    pharmacyName: string;
-    responseStatus:
-        | 'AVAILABLE'
-        | 'LOW_AVAILABILITY'
-        | 'OUT_OF_STOCK'
-        | 'UNABLE_TO_CONFIRM';
-    responseMessage?: string;
-    respondedAt: string;
+// Internal pharmacy contact update
+export interface PharmacyContactUpdateDTO {
+    contactStatus: 'CONTACTED' | 'UNABLE_TO_CONTACT';
+    notes?: string;
 }
