@@ -48,29 +48,81 @@ const RequestMedicine: React.FC = () => {
     setForm((previous) => ({ ...previous, [key]: value }));
     setShowNotice(false);
   };
+const handleSubmit = async (
+  event: React.FormEvent<HTMLFormElement>
+) => {
+  event.preventDefault();
+  setShowNotice(false);
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  if (form.destination === 'specific' && !form.pharmacy) {
+    window.alert('Please select a specific pharmacy.');
+    return;
+  }
 
-    if (form.destination === 'specific' && !form.pharmacy) {
-      window.alert('Please select a specific pharmacy.');
-      return;
-    }
+  if (!form.acknowledgement) {
+    window.alert('Please acknowledge the medicine availability notice.');
+    return;
+  }
 
-    if (!form.acknowledgement) {
-      window.alert('Please acknowledge the medicine availability notice.');
-      return;
-    }
+  if (!form.consent) {
+    window.alert('Please agree to be contacted regarding your request.');
+    return;
+  }
 
-    if (!form.consent) {
-      window.alert('Please agree to be contacted regarding your request.');
-      return;
-    }
-
-    // Day 4: Frontend prototype only.
-    // Do not send or store personal information yet.
-    setShowNotice(true);
+  const payload = {
+    medicineName: form.medicineName.trim(),
+    preferredBrandTradeName: form.brand.trim(),
+    strength: form.strength.trim(),
+    dosageForm: form.dosageForm,
+    additionalDetails: form.details.trim(),
+    preferredTownArea: form.area,
+    requestDestination:
+      form.destination === 'nearby'
+        ? 'NEARBY_PARTICIPATING_PHARMACIES'
+        : 'SPECIFIC_PHARMACY',
+    ...(form.destination === 'specific'
+      ? { selectedPharmacyId: form.pharmacy }
+      : {}),
+    contactPreference:
+      form.responseMethod === 'Phone Call'
+        ? 'PHONE_CALL'
+        : form.responseMethod === 'WhatsApp'
+          ? 'WHATSAPP'
+          : 'SMS',
+    phone: form.phone.trim(),
+    consentAccepted: form.consent,
   };
+
+  try {
+    const response = await fetch(
+      `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/v1/public/medicine-requests`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      }
+    );
+
+    const result = await response.json();
+
+    if (!response.ok || !result.success) {
+      throw new Error(
+        result.message || 'Unable to submit medicine request'
+      );
+    }
+
+    setShowNotice(true);
+  } catch (error) {
+    window.alert(
+      error instanceof Error
+        ? error.message
+        : 'Unable to submit medicine request'
+    );
+  }
+};
+
 
   const sectionTitle = (
     number: string,
@@ -100,7 +152,8 @@ const RequestMedicine: React.FC = () => {
           <h1 className="text-4xl font-light">Request a Medicine</h1>
           <p className="text-gray-500 mt-4 max-w-lg">
             Can't find the medicine you need? Send a request to
-            participating pharmacies and check their responses.
+participating pharmacies. Pharmacy staff may contact you
+if the medicine is available.
           </p>
         </div>
       </section>
@@ -299,7 +352,7 @@ const RequestMedicine: React.FC = () => {
                   className={inputClass}
                 >
                   <option value="">Select a pharmacy</option>
-                  {form.area === 'Kandana' && <option>Gimshani Pharmacy</option>}
+                  {form.area === 'Kandana' && <option value="6ae7fc34f7250ad09daa7fee">Gimshani Pharmacy</option>}
                   {form.area === 'Ja-Ela' && <option>Ja-Ela Community Pharmacy</option>}
                   {form.area === 'Ragama' && <option>Ragama Family Pharmacy</option>}
                 </select>
@@ -410,11 +463,15 @@ const RequestMedicine: React.FC = () => {
             </button>
 
             {showNotice && (
-              <div role="status" className="mt-5 p-4 bg-emerald-50 border border-emerald-200 rounded-md text-sm text-emerald-800">
-                Form validation successful! This is a frontend prototype.
-                No request has been submitted or saved.
-              </div>
-            )}
+  <div
+    role="status"
+    className="mt-5 p-4 bg-emerald-50 border border-emerald-200 rounded-md text-sm text-emerald-800"
+  >
+    Your medicine request has been submitted successfully.
+    If the medicine is available, pharmacy staff may contact
+    you using your selected contact method.
+  </div>
+)}
           </div>
         </div>
       </form>
