@@ -162,6 +162,7 @@
   "createdAt": "2026-11-02T00:00:00.000Z"
 }
 ```
+Final version for approval: see `M5-Contracts-and-Workflows.md`.
 
 ## 11. Reports DTO (draft)
 
@@ -176,6 +177,7 @@
   "safety": { "verifiedNotices": 0, "confirmedMatches": 0 }
 }
 ```
+Final version for approval: see `M5-Contracts-and-Workflows.md`.
 
 Money values are sent as strings because the database stores them as Decimal128.
 
@@ -186,6 +188,5 @@ Money values are sent as strings because the database stores them as Decimal128.
 - [ ] M2: `batches`, `pharmacyMedicines` and `medicineCatalog` fields and model names (not merged yet)
 - [x] M4: `Sale` model checked in `backend/src/modules/sales/models`
 - [ ] M4: `Sale` has no `pharmacyId`; status values are lowercase (`completed`/`cancelled`), not DRAFT/COMPLETED/VOIDED
-- [ ] M6: request collections, and whether a requested-quantity field will exist
-- [ ] Team: does `safetyNotices` need a `title` field?
+- [ ] M6: confirm request field names and the community-demand summary endpoint (no quantity field needed, the Figma shows request counts)- [ ] Team: does `safetyNotices` need a `title` field?
 - [ ] Stakeholder: who verifies safety notices; low-availability threshold

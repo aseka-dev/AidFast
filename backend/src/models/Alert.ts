@@ -6,10 +6,13 @@ export interface IAlert extends Document {
     batchId?: mongoose.Types.ObjectId;
     alertType: 'LOW_STOCK' | 'OUT_OF_STOCK' | 'EXPIRY' | 'RECALL_MATCH';
     alertLevel: 'INFO' | 'ALERT' | 'WARNING' | 'CRITICAL';
+    expiryCategory?: 'ALERT' | 'WARNING' | 'CRITICAL' | 'EXPIRED';
     message: string;
     status: 'OPEN' | 'ACKNOWLEDGED' | 'RESOLVED';
     dedupeKey: string;
     resolvedAt?: Date;
+    acknowledgedBy?: mongoose.Types.ObjectId;
+    acknowledgedAt?: Date;
 }
 
 const alertSchema = new Schema<IAlert>(
@@ -38,6 +41,10 @@ const alertSchema = new Schema<IAlert>(
             enum: ['INFO', 'ALERT', 'WARNING', 'CRITICAL'],
             required: true
         },
+        expiryCategory: {
+            type: String,
+            enum: ['ALERT', 'WARNING', 'CRITICAL', 'EXPIRED']
+        },
         message: {
             type: String,
             required: true,
@@ -54,6 +61,13 @@ const alertSchema = new Schema<IAlert>(
             trim: true
         },
         resolvedAt: {
+            type: Date
+        },
+        acknowledgedBy: {
+            type: Schema.Types.ObjectId,
+            ref: 'User'
+        },
+        acknowledgedAt: {
             type: Date
         }
     },
