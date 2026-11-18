@@ -21,14 +21,14 @@ PATCH  /:id/deactivate   - Deactivate supplier
 
 ## GRN Endpoints
 
-GET    /                    - List GRNs (optional `?status=DRAFT`)
+GET    /                    - List GRNs (optional `?status=DRAFT`; pending queue requires `grn:verify`)
 GET    /:id                 - Get GRN details
 POST   /                    - Create GRN draft
-PUT    /:id                 - Replace an existing DRAFT and its items
-PATCH  /:id                 - Replace an existing DRAFT and its items
-POST   /:id/submit          - Submit a DRAFT for verification
-POST   /:id/request-changes - Request corrections (reserved; not implemented)
-POST   /:id/confirm         - Confirm GRN (reserved; not implemented)
+PUT    /:id                 - Replace an existing DRAFT or CHANGES_REQUESTED GRN and its items
+PATCH  /:id                 - Replace an existing DRAFT or CHANGES_REQUESTED GRN and its items
+POST   /:id/submit          - Submit DRAFT or resubmit CHANGES_REQUESTED
+POST   /:id/request-changes - Request corrections for a pending GRN
+POST   /:id/confirm         - Confirm a pending GRN and post accepted stock
 POST   /:id/reverse         - Reverse GRN (reserved; not implemented)
 
 Draft create and edit requests include `supplierId`, `invoiceNumber`,
@@ -41,8 +41,9 @@ an existing number is preserved when a draft edit omits it.
 
 Accepted quantity is always calculated as `receivedQuantity -
 rejectedQuantity`; clients cannot override it. Draft updates replace the full
-item list atomically and are allowed only while the GRN remains `DRAFT`.
-Create, edit, and submit require MongoDB transaction support.
+item list atomically and are allowed only while the GRN is `DRAFT` or
+`CHANGES_REQUESTED`. STAFF may edit only their own GRNs. Create, edit, submit,
+and confirmation require MongoDB transaction support.
 
 ## Permissions
 
@@ -55,12 +56,25 @@ Request Changes:
 - Permission: `grn:verify`
 - From: PENDING_VERIFICATION
 - To: CHANGES_REQUESTED
+- Body: `{ "comment": "..." }`; trimmed comment must contain at least 5 characters.
+- Records verifier, time, comment and audit history; never posts inventory.
 
 Confirm:
 - Permission: `grn:confirm`
 - From: PENDING_VERIFICATION
 - To: CONFIRMED
-- Stock posting required exactly once
+- VERIFIER and ADMIN have `grn:confirm`; PHARMACIST and STAFF do not.
+- GRN creator cannot verify their own receipt.
+- Status, batch creation, stock movements and balances commit in one MongoDB
+  transaction. Only accepted quantities are posted; stable per-item idempotency
+  keys and `inventoryPosted` prevent duplicate posting.
+
+Resubmit:
+- Permission: `grn:submit`
+- From: CHANGES_REQUESTED
+- To: PENDING_VERIFICATION
+- Server reruns supplier, purchase order, pharmacy medicine, quantity, and
+  financial validations. Resubmission does not post inventory.
 
 Reverse:
 - Permission: `grn:reverse`
@@ -71,7 +85,10 @@ Reverse:
 Read, create, update and submit operations use `grn:read`, `grn:create`, and
 `grn:submit` respectively, together with authenticated selected-pharmacy
 membership and URL pharmacy matching. Draft creation, editing and submission
-do not modify inventory.
+do not modify inventory. Invalid transitions return HTTP 409, malformed input
+returns 400, missing GRNs return 404, and access failures return 403. MongoDB
+must run as a replica set or through mongos for transactional operations;
+standalone MongoDB returns 503.
 
 ## Supplier Response
 

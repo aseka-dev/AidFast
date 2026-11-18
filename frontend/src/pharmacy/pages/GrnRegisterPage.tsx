@@ -400,7 +400,7 @@ const GrnRegisterPage: React.FC = () => {
                         Print GRN
                       </Link>
                       {auth.hasPermission('grn:create') &&
-                        grn.status === 'DRAFT' &&
+                        ['DRAFT', 'CHANGES_REQUESTED'].includes(grn.status) &&
                         (auth.currentPharmacy?.role !== 'STAFF' ||
                           (typeof grn.createdBy === 'string'
                             ? grn.createdBy
@@ -408,7 +408,7 @@ const GrnRegisterPage: React.FC = () => {
                           <Link
                             to={`/dashboard/purchasing/grns/${grn._id}/edit`}
                           >
-                            Edit draft
+                            {grn.status === 'CHANGES_REQUESTED' ? 'Edit corrections' : 'Edit draft'}
                           </Link>
                         )}
                     </div>

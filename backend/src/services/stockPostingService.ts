@@ -27,7 +27,7 @@ export class CentralStockPostingService implements IStockPostingService {
     return this.post({ ...other, quantityDelta: -quantity });
   }
 
-  async post(command: StockPostingCommand): Promise<StockPostingResult> {
+  async post(command: StockPostingCommand, transactionSession?: mongoose.ClientSession): Promise<StockPostingResult> {
     validateStockPostingCommand(command);
     const lookup = { pharmacyId: command.pharmacyId, idempotencyKey: command.idempotencyKey };
 
@@ -47,10 +47,11 @@ export class CentralStockPostingService implements IStockPostingService {
       };
     };
 
-    const session = await mongoose.startSession();
+    const session = transactionSession ?? await mongoose.startSession();
+    const ownsSession = !transactionSession;
     try {
       try {
-        return await session.withTransaction(async (): Promise<StockPostingResult> => {
+        const execute = async (): Promise<StockPostingResult> => {
           const previous = await StockMovement.findOne(lookup).session(session);
           if (previous) return replay(previous);
 
@@ -143,16 +144,17 @@ export class CentralStockPostingService implements IStockPostingService {
             quantityBefore: before, quantityAfter: after, applied: true,
             batchStatus: updated.batchStatus
           };
-        });
+        };
+        return ownsSession ? await session.withTransaction(execute) : await execute();
       } catch (error) {
         if (isDuplicateKey(error)) {
-          const existing = await StockMovement.findOne(lookup);
+          const existing = await StockMovement.findOne(lookup).session(session);
           if (existing) return replay(existing);
         }
         throw error;
       }
     } finally {
-      await session.endSession();
+      if (ownsSession) await session.endSession();
     }
   }
 }

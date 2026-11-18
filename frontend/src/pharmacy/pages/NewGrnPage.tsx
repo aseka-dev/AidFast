@@ -97,7 +97,7 @@ const NewGrnPage: React.FC = () => {
 
   const canEdit =
     auth.hasPermission('grn:create') &&
-    recordStatus === 'DRAFT';
+    ['DRAFT', 'CHANGES_REQUESTED'].includes(recordStatus);
   const canSubmit = auth.hasPermission('grn:submit');
 
   const activeId = editGrnId || savedGrnId;
@@ -529,7 +529,7 @@ const NewGrnPage: React.FC = () => {
         </div>
       )}
 
-      {isEditMode && !canEdit && !loading && (
+          {isEditMode && !canEdit && !loading && (
         <div className="rounded-lg bg-amber-50 p-4 text-sm text-amber-800">
           This GRN cannot be edited because its current status is{' '}
           {recordStatus}.

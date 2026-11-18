@@ -11,6 +11,7 @@ export interface IGRN extends Document {
   receivedDate: Date;
   status: GRNStatus;
   verificationComment?: string;
+  verificationHistory: Array<{ action: string; comment?: string; userId: mongoose.Types.ObjectId; at: Date }>;
   submittedAt?: Date;
   verifiedAt?: Date;
   confirmedAt?: Date;
@@ -59,6 +60,7 @@ const grnSchema = new Schema<IGRN>(
       default: GRN_STATUS.DRAFT,
     },
     verificationComment: String,
+    verificationHistory: [{ action: { type: String, required: true }, comment: String, userId: { type: Schema.Types.ObjectId, ref: "User", required: true }, at: { type: Date, required: true } }],
     submittedAt: Date,
     verifiedAt: Date,
     confirmedAt: Date,
