@@ -203,6 +203,21 @@ test('GRN routes enforce permissions and pharmacy scope without posting stock', 
   assert.equal((await request(`/${grnId}/submit`, 'POST')).status, 403);
   assert.equal(grns[0].status, 'PENDING_VERIFICATION');
   assert.equal(items[0].acceptedQuantity, 10);
+  assert.equal((await request(`/${grnId}/request-changes`, 'POST', { comment: '   ' })).status, 400);
+  const returned = await request(`/${grnId}/request-changes`, 'POST', { comment: 'Correct the received quantities.' });
+  assert.equal(returned.status, 200);
+  assert.equal(grns[0].status, 'CHANGES_REQUESTED');
+  assert.equal(items[0].acceptedQuantity, 10, 'requesting changes must not post inventory');
+
+  roleName = 'PHARMACIST';
+  const corrected = await request(`/${grnId}`, 'PUT', {
+    ...body,
+    items: [{ ...body.items[0], receivedQuantity: 13, rejectedQuantity: 3 }],
+  });
+  assert.equal(corrected.status, 200);
+  assert.equal(items[0].acceptedQuantity, 10);
+  assert.equal((await request(`/${grnId}/submit`, 'POST')).status, 200);
+  assert.equal(grns[0].status, 'PENDING_VERIFICATION');
 
   roleName = 'ADMIN';
   const adminCreated = await request('', 'POST', body);

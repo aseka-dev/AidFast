@@ -11,6 +11,8 @@ import PharmacyMedicine from '../models/PharmacyMedicine';
 import PurchaseOrder from '../models/PurchaseOrder';
 import PurchaseOrderItem from '../models/PurchaseOrderItem';
 import Supplier from '../models/Supplier';
+import Batch from '../models/Batch';
+import { stockPostingService } from '../services/stockPostingService';
 import { grnInput, grnListQuery, GrnInput } from '../services/grnValidation';
 import { addDecimals, equalDecimals, multiplyDecimal } from '../services/purchasingValidation';
 
@@ -41,6 +43,9 @@ function handler(action: (req: AuthRequest, res: Response) => Promise<void>) {
           success: false,
           message: 'GRN changes require MongoDB transaction support (replica set or mongos)',
         });
+      } else if (typeof error === 'object' && error !== null && 'httpStatus' in error) {
+        const stockError = error as { httpStatus: number; message: string };
+        res.status(stockError.httpStatus).json({ success: false, message: stockError.message });
       } else {
         console.error('GRN request failed', error);
         res.status(500).json({ success: false, message: 'Unable to complete GRN request' });
@@ -160,11 +165,18 @@ async function loadGrnItems(
 
 export const listGrns = handler(async (req, res) => {
   const { status } = grnListQuery.parse(req.query);
+  if (status === GRN_STATUS.PENDING_VERIFICATION &&
+      !req.user!.permissions?.includes('*') &&
+      !req.user!.permissions?.includes('grn:verify')) {
+    throw new GrnRequestError(403, 'Verification queue access requires grn:verify permission');
+  }
   const filter: Record<string, unknown> = { pharmacyId: getPharmacyId(req) };
   if (status) filter.status = status;
   const grns = await GRN.find(filter).sort({ receivedDate: -1, _id: -1 });
   const data = await Promise.all(grns.map(async grn => ({
     ...grn.toObject(),
+    supplier: await Supplier.findOne({ _id: grn.supplierId, pharmacyId: getPharmacyId(req) }),
+    purchaseOrder: grn.purchaseOrderId ? await PurchaseOrder.findOne({ _id: grn.purchaseOrderId, pharmacyId: getPharmacyId(req) }) : null,
     items: await loadGrnItems(grn._id, getPharmacyId(req)),
   })));
   res.json({ success: true, data });
@@ -226,15 +238,15 @@ export const updateGrn = handler(async (req, res) => {
     await session.withTransaction(async () => {
       const existing = await GRN.findOne(filter).session(session);
       if (!existing) throw new GrnRequestError(404, 'GRN not found');
-      if (existing.status !== GRN_STATUS.DRAFT) {
-        throw new GrnRequestError(409, 'Only DRAFT GRNs can be edited');
+      if (existing.status !== GRN_STATUS.DRAFT && existing.status !== GRN_STATUS.CHANGES_REQUESTED) {
+        throw new GrnRequestError(409, 'Only DRAFT or CHANGES_REQUESTED GRNs can be edited');
       }
       if (req.user!.role === 'STAFF' && String(existing.createdBy) !== req.user!.userId) {
         throw new GrnRequestError(403, 'Staff can only edit GRN drafts they created');
       }
       await validateReferences(input, pharmacyId, session);
       const grn = await GRN.findOneAndUpdate(
-        { ...filter, status: GRN_STATUS.DRAFT },
+        { ...filter, status: existing.status },
         {
           $set: {
             supplierId: input.supplierId,
@@ -248,7 +260,7 @@ export const updateGrn = handler(async (req, res) => {
         },
         { new: true, runValidators: true, session }
       );
-      if (!grn) throw new GrnRequestError(409, 'Only DRAFT GRNs can be edited');
+      if (!grn) throw new GrnRequestError(409, 'GRN can no longer be edited');
       await GRNItem.deleteMany({ grnId: grn._id, pharmacyId }).session(session);
       const items = input.items.map(item => new GRNItem({
         ...itemDocumentData(item),
@@ -261,7 +273,7 @@ export const updateGrn = handler(async (req, res) => {
   } finally {
     await session.endSession();
   }
-  res.json({ success: true, message: 'GRN draft updated successfully', data: result });
+  res.json({ success: true, message: 'GRN updated successfully', data: result });
 });
 
 export const submitGrn = handler(async (req, res) => {
@@ -274,7 +286,7 @@ export const submitGrn = handler(async (req, res) => {
       const grn = await GRN.findOne(filter).session(session);
       if (!grn) throw new GrnRequestError(404, 'GRN not found');
       if (!canChangeGRNStatus(grn.status, GRN_STATUS.PENDING_VERIFICATION)) {
-        throw new GrnRequestError(409, 'Only DRAFT GRNs can be submitted for verification');
+        throw new GrnRequestError(409, 'Only DRAFT or CHANGES_REQUESTED GRNs can be submitted for verification');
       }
       if (!grn.supplierId || !grn.grnNumber || !grn.invoiceNumber || !grn.receivedDate) {
         throw new GrnRequestError(400, 'GRN is missing required header information');
@@ -331,21 +343,98 @@ export const submitGrn = handler(async (req, res) => {
         await item.save({ session });
       }
       const updated = await GRN.findOneAndUpdate(
-        { ...filter, status: GRN_STATUS.DRAFT },
+        { ...filter, status: grn.status },
         {
           $set: {
             status: GRN_STATUS.PENDING_VERIFICATION,
             submittedAt: new Date(),
             submittedBy: req.user!.userId,
+            ...(grn.status === GRN_STATUS.CHANGES_REQUESTED ? { verificationComment: '' } : {}),
           },
+          $push: { verificationHistory: { action: 'RESUBMITTED', userId: req.user!.userId, at: new Date() } },
         },
         { new: true, runValidators: true, session }
       );
-      if (!updated) throw new GrnRequestError(409, 'Only DRAFT GRNs can be submitted for verification');
+      if (!updated) throw new GrnRequestError(409, 'GRN can no longer be submitted for verification');
       result = { ...updated.toObject(), items: items.map(item => item.toObject()) };
     });
   } finally {
     await session.endSession();
   }
   res.json({ success: true, message: 'GRN submitted for verification', data: result });
+});
+
+export const requestGrnChanges = handler(async (req, res) => {
+  const filter = grnFilter(req);
+  const comment = typeof req.body?.comment === 'string' ? req.body.comment.trim() : '';
+  if (comment.length < 5) throw new GrnRequestError(400, 'A meaningful change request comment of at least 5 characters is required');
+  const now = new Date();
+  const updated = await GRN.findOneAndUpdate(
+    { ...filter, status: GRN_STATUS.PENDING_VERIFICATION },
+    { $set: { status: GRN_STATUS.CHANGES_REQUESTED, verificationComment: comment, verifiedBy: req.user!.userId, verifiedAt: now },
+      $push: { verificationHistory: { action: 'CHANGES_REQUESTED', comment, userId: req.user!.userId, at: now } } },
+    { new: true, runValidators: true }
+  );
+  if (!updated) {
+    const exists = await GRN.exists(filter);
+    if (!exists) throw new GrnRequestError(404, 'GRN not found');
+    throw new GrnRequestError(409, 'Changes can only be requested for a GRN awaiting verification');
+  }
+  res.json({ success: true, message: 'Corrections requested; inventory was not changed', data: updated });
+});
+
+export const confirmGrn = handler(async (req, res) => {
+  const filter = grnFilter(req);
+  const pharmacyId = getPharmacyId(req);
+  const session = await mongoose.startSession();
+  let result: Record<string, unknown> | undefined;
+  try {
+    await session.withTransaction(async () => {
+      const grn = await GRN.findOne(filter).session(session);
+      if (!grn) throw new GrnRequestError(404, 'GRN not found');
+      if (grn.status !== GRN_STATUS.PENDING_VERIFICATION) {
+        throw new GrnRequestError(409, grn.status === GRN_STATUS.CONFIRMED ? 'GRN has already been confirmed' : 'Only GRNs awaiting verification can be confirmed');
+      }
+      if (grn.inventoryPosted) throw new GrnRequestError(409, 'GRN inventory has already been posted');
+      if (grn.createdBy && String(grn.createdBy) === req.user!.userId) {
+        throw new GrnRequestError(403, 'The GRN creator cannot independently verify their own GRN');
+      }
+      const items = await loadGrnItems(grn._id, pharmacyId, session);
+      if (!items.length) throw new GrnRequestError(400, 'GRN must contain at least one item');
+      const now = new Date();
+      const claimed = await GRN.findOneAndUpdate(
+        { ...filter, status: GRN_STATUS.PENDING_VERIFICATION, inventoryPosted: false },
+        { $set: { status: GRN_STATUS.CONFIRMED, verifiedBy: req.user!.userId, verifiedAt: now, confirmedBy: req.user!.userId, confirmedAt: now },
+          $push: { verificationHistory: { action: 'CONFIRMED', userId: req.user!.userId, at: now } } },
+        { new: true, runValidators: true, session }
+      );
+      if (!claimed) throw new GrnRequestError(409, 'GRN was already confirmed');
+      for (const item of items) {
+        if (item.acceptedQuantity === 0) continue;
+        const batch = await Batch.findOneAndUpdate(
+          { pharmacyId, grnItemId: item._id },
+          { $setOnInsert: {
+            pharmacyId, medicineId: item.medicineId, supplierId: grn.supplierId, grnItemId: item._id,
+            batchNumber: item.batchNumber, receivedDate: grn.receivedDate, expiryDate: item.expiryDate,
+            currentQuantity: 0, initialQuantity: 0, unitOfMeasure: item.unitOfMeasure || 'unit',
+            wholesalePrice: item.wholesalePrice, retailPrice: item.retailPrice, batchStatus: 'ACTIVE', safetyStatus: 'CLEAR'
+          } },
+          { upsert: true, new: true, setDefaultsOnInsert: true, session }
+        );
+        item.batchId = batch._id;
+        await item.save({ session });
+        await stockPostingService.post({
+          pharmacyId: String(pharmacyId), medicineId: String(item.medicineId), batchId: String(batch._id),
+          performedById: req.user!.userId, movementType: 'GRN_RECEIPT', quantityDelta: item.acceptedQuantity,
+          referenceType: 'GRN_ITEM', referenceId: String(item._id), idempotencyKey: `grn:${grn._id}:item:${item._id}:stock-in`
+        }, session);
+      }
+      claimed.inventoryPosted = true;
+      await claimed.save({ session });
+      result = { ...claimed.toObject(), items };
+    });
+  } finally {
+    await session.endSession();
+  }
+  res.json({ success: true, message: 'GRN confirmed and accepted quantities posted to inventory', data: result });
 });

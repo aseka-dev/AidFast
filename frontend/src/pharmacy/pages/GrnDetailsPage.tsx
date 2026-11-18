@@ -261,13 +261,14 @@ const GrnDetailsPage: React.FC = () => {
 
     if (
       action === 'request-changes' &&
-      !comment.trim()
+      comment.trim().length < 5
     ) {
       setError(
-        'Enter verification remarks before requesting changes.'
+        'Enter a meaningful correction comment (at least 5 characters).'
       );
       return;
     }
+    if (action === 'confirm' && !window.confirm('Confirm this GRN and post its accepted quantities to inventory?')) return;
 
     setProcessing(true);
     setError('');
@@ -282,7 +283,7 @@ const GrnDetailsPage: React.FC = () => {
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
-            verificationComment: comment
+            comment: comment.trim()
           })
         },
         auth.token
@@ -292,7 +293,7 @@ const GrnDetailsPage: React.FC = () => {
         throw new Error(
           response.status === 501
             ? 'GRN verification API is not implemented yet.'
-            : `Action failed (${response.status}).`
+            : await response.clone().json().then((body) => body.message || `Action failed (${response.status}).`).catch(() => `Action failed (${response.status}).`)
         );
       }
 
@@ -419,6 +420,7 @@ const GrnDetailsPage: React.FC = () => {
               referenceId(grn.purchaseOrderId) || '—'
             ],
             ['Prepared Date', formatGrnDate(grn.createdAt)],
+            ['Confirmed Date', formatGrnDate(grn.confirmedAt)],
             [
               'Verification Date',
               formatGrnDate(grn.verifiedAt)
@@ -643,6 +645,11 @@ const GrnDetailsPage: React.FC = () => {
 
       {/* Bottom Actions */}
       <div className="flex justify-end gap-3 print:hidden">
+        {grn.status === 'CHANGES_REQUESTED' && auth.hasPermission('grn:create') && (
+          <Link to={`/dashboard/purchasing/grns/${grn._id}/edit`} className="rounded-lg bg-amber-600 px-5 py-3 text-sm text-white">
+            Edit requested corrections
+          </Link>
+        )}
         <button
           type="button"
           onClick={() => window.print()}

@@ -43,7 +43,7 @@ const ROLE_PERMISSIONS_FALLBACK: Record<string, string[]> = {
     'users:read',
     'catalog:read',
     'inventory:read',
-    'grn:read', 'grn:verify', 'suppliers:read', 'po:read',
+    'grn:read', 'grn:verify', 'grn:confirm', 'suppliers:read', 'po:read',
     'sales:read',
     'returns:read',
     'alerts:read',
