@@ -25,6 +25,7 @@ import medicineRoutes from './routes/medicineRoutes';
 import batchRoutes from './routes/batchRoutes';
 
 import salesRoutes from './routes/salesRoutes';
+import returnsRoutes from './routes/returnsRoutes';
 
 import {
   authenticate,
@@ -120,6 +121,11 @@ app.use(
 app.use(
   "/api/v1/pharmacies/:pharmacyId/sales",
   salesRoutes
+);
+
+app.use(
+  "/api/v1/pharmacies/:pharmacyId/returns",
+  returnsRoutes
 );
 
 

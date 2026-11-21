@@ -6,6 +6,7 @@ import {
   requireSelectedPharmacy,
   type AuthRequest
 } from "../middleware/authMiddleware";
+import matchPharmacyParam from "../middleware/matchPharmacyParam";
 
 import requirePermission from "../middleware/permissionMiddleware";
 import { PERMISSIONS } from "../config/permissions";
@@ -21,8 +22,8 @@ import { previewSaleAllocation } from "../services/salesPreview";
 
 const router = Router({ mergeParams: true });
 
-// Authentication middleware
-router.use(authenticate, requireSelectedPharmacy);
+// Authentication & Tenant isolation middleware
+router.use(authenticate, requireSelectedPharmacy, matchPharmacyParam);
 
 // Day 6 - Create draft sale
 router.post(
