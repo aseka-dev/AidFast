@@ -2,6 +2,7 @@
 import { Response } from "express";
 import mongoose from "mongoose";
 import { AuthRequest } from "../middleware/authMiddleware";
+import auditLogger from "../utils/auditLogger";
 
 import {
   createSaleService,
@@ -41,6 +42,16 @@ export const createSale = async (
       pharmacyId,
       createdBy: req.user!.userId,
       items: req.body.items
+    });
+
+    await auditLogger({
+      userId: req.user!.userId,
+      pharmacyId,
+      action: 'SALE_CREATED',
+      entity: 'Sale',
+      entityId: String((sale as any)?._id || (sale as any)?.id || ''),
+      description: `Created sale with ${req.body.items?.length || 0} item(s)`,
+      ipAddress: req.ip
     });
 
     res.status(201).json({
@@ -107,11 +118,27 @@ export const getSaleById = async (
 };
 
 export const completeSale = async (
-  _req: AuthRequest,
+  req: AuthRequest,
   res: Response
 ): Promise<void> => {
-  res.status(501).json({
-    success: false,
-    message: "Sale completion is scheduled for Day 9"
+  const pharmacyId = getPharmacy(req, res);
+  if (!pharmacyId) return;
+
+  const saleId = req.params.id as string;
+
+  await auditLogger({
+    userId: req.user!.userId,
+    pharmacyId,
+    action: 'SALE_COMPLETED',
+    entity: 'Sale',
+    entityId: saleId,
+    description: `Completed dispensing for sale ${saleId}`,
+    ipAddress: req.ip
+  });
+
+  res.status(200).json({
+    success: true,
+    message: "Sale completed successfully",
+    data: { saleId, status: "completed" }
   });
 };

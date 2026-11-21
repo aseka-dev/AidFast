@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { AuthRequest } from '../middleware/authMiddleware';
 import { batchSafetyService, SafetyAction } from '../services/batchSafetyContract';
+import auditLogger from '../utils/auditLogger';
 
 const notImplemented = (res: Response, name: string, plannedDay: number) =>
     res.status(501).json({ message: `${name} is not implemented yet`, plannedDay });
@@ -50,6 +51,16 @@ export const applySafetyAction = async (req: AuthRequest, res: Response) => {
         safetyNoticeId,
         requestedBy: String(req.user?.userId),
         idempotencyKey: `${safetyNoticeId}:${batchId}:${action}`
+    });
+
+    await auditLogger({
+        userId: req.user?.userId,
+        pharmacyId: String(req.user?.pharmacyId),
+        action: 'SAFETY_ACTION_APPLIED',
+        entity: 'Batch',
+        entityId: batchId,
+        description: `Applied safety action ${action} on batch ${batchId} for notice ${safetyNoticeId}. Reason: ${reason}`,
+        ipAddress: req.ip
     });
 
     return res.status(200).json({ matchId, mock: true, result });
