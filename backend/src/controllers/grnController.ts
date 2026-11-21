@@ -12,6 +12,7 @@ import PurchaseOrder from '../models/PurchaseOrder';
 import PurchaseOrderItem from '../models/PurchaseOrderItem';
 import Supplier from '../models/Supplier';
 import Batch from '../models/Batch';
+import auditLogger from '../utils/auditLogger';
 import { stockPostingService } from '../services/stockPostingService';
 import { grnInput, grnListQuery, GrnInput } from '../services/grnValidation';
 import { addDecimals, equalDecimals, multiplyDecimal } from '../services/purchasingValidation';
@@ -357,6 +358,16 @@ export const submitGrn = handler(async (req, res) => {
       );
       if (!updated) throw new GrnRequestError(409, 'GRN can no longer be submitted for verification');
       result = { ...updated.toObject(), items: items.map(item => item.toObject()) };
+
+      await auditLogger({
+        userId: req.user!.userId,
+        pharmacyId: String(pharmacyId),
+        action: 'GRN_SUBMITTED',
+        entity: 'GRN',
+        entityId: String(updated._id),
+        description: `Submitted GRN ${updated.grnNumber} for verification`,
+        ipAddress: req.ip
+      });
     });
   } finally {
     await session.endSession();
@@ -380,6 +391,16 @@ export const requestGrnChanges = handler(async (req, res) => {
     if (!exists) throw new GrnRequestError(404, 'GRN not found');
     throw new GrnRequestError(409, 'Changes can only be requested for a GRN awaiting verification');
   }
+
+  await auditLogger({
+    userId: req.user!.userId,
+    pharmacyId: String(filter.pharmacyId),
+    action: 'GRN_CHANGES_REQUESTED',
+    entity: 'GRN',
+    entityId: String(updated._id),
+    description: `Requested changes for GRN ${updated.grnNumber}: ${comment}`,
+    ipAddress: req.ip
+  });
   res.json({ success: true, message: 'Corrections requested; inventory was not changed', data: updated });
 });
 
@@ -432,6 +453,16 @@ export const confirmGrn = handler(async (req, res) => {
       claimed.inventoryPosted = true;
       await claimed.save({ session });
       result = { ...claimed.toObject(), items };
+
+      await auditLogger({
+        userId: req.user!.userId,
+        pharmacyId: String(pharmacyId),
+        action: 'GRN_CONFIRMED',
+        entity: 'GRN',
+        entityId: String(claimed._id),
+        description: `Confirmed GRN ${claimed.grnNumber} and posted accepted quantities to inventory`,
+        ipAddress: req.ip
+      });
     });
   } finally {
     await session.endSession();

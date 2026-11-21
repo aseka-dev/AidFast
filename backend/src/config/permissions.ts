@@ -44,6 +44,7 @@ export const PERMISSIONS = {
   SAFETY_READ: 'safety:read',
   SAFETY_CREATE: 'safety:create',
   SAFETY_VERIFY: 'safety:verify',
+  SAFETY_ACTION: 'safety:action',
   REPORTS_READ: 'reports:read',
 
   // Community Medicine Requests (Member 6)
@@ -91,6 +92,7 @@ export const ROLE_PERMISSIONS: Record<RoleName, { description: string; permissio
       PERMISSIONS.SAFETY_READ,
       PERMISSIONS.SAFETY_CREATE,
       PERMISSIONS.SAFETY_VERIFY,
+      PERMISSIONS.SAFETY_ACTION,
       PERMISSIONS.REPORTS_READ,
       PERMISSIONS.REQUESTS_READ,
       PERMISSIONS.REQUESTS_RESPOND
@@ -136,6 +138,7 @@ export const ROLE_PERMISSIONS: Record<RoleName, { description: string; permissio
       PERMISSIONS.ALERTS_READ,
       PERMISSIONS.SAFETY_READ,
       PERMISSIONS.SAFETY_VERIFY,
+      PERMISSIONS.SAFETY_ACTION,
       PERMISSIONS.REQUESTS_READ,
       PERMISSIONS.REPORTS_READ
     ]

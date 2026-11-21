@@ -29,11 +29,15 @@ Sprint 2 establishes the operational security, administrative workflows, and mul
 
 | Sprint Day | Target Deliverable / Capability | Key Components & Files | Status | Verification Evidence |
 | :--- | :--- | :--- | :--- | :--- |
-| **Day 6** | Pharmacy Profile & Operational Settings APIs | [`settingsRoutes.ts`](file:///c:/Users/aseka/Downloads/AidFast/backend/src/routes/settingsRoutes.ts)<br>[`settingsController.ts`](file:///c:/Users/aseka/Downloads/AidFast/backend/src/controllers/settingsController.ts) | Complete | PR #38 |
-| **Day 7** | Role-Based Sidebar Navigation & Settings Page UI | [`DashboardSidebar.tsx`](file:///c:/Users/aseka/Downloads/AidFast/frontend/src/pharmacy/layout/DashboardSidebar.tsx)<br>[`SettingsPage.tsx`](file:///c:/Users/aseka/Downloads/AidFast/frontend/src/pharmacy/pages/SettingsPage.tsx) | Complete | PR #40 |
-| **Day 8** | Staff User Management, Password Change & Audited Auth APIs | [`userRoutes.ts`](file:///c:/Users/aseka/Downloads/AidFast/backend/src/routes/userRoutes.ts)<br>[`userController.ts`](file:///c:/Users/aseka/Downloads/AidFast/backend/src/controllers/userController.ts)<br>[`auditLogger.ts`](file:///c:/Users/aseka/Downloads/AidFast/backend/src/utils/auditLogger.ts) | Complete | PR #41 |
-| **Day 9** | Internal Route Integration, Centralized Errors & Security Test Suite | [`errors.ts`](file:///c:/Users/aseka/Downloads/AidFast/backend/src/utils/errors.ts)<br>[`errorHandler.ts`](file:///c:/Users/aseka/Downloads/AidFast/backend/src/middleware/errorHandler.ts)<br>[`security.test.ts`](file:///c:/Users/aseka/Downloads/AidFast/backend/src/tests/security.test.ts) | Complete | Commit `86e6710` |
-| **Day 10** | Integrated Demo, Tenant Auth/Error Review & Blocker Triage | [`documentation/Sprint-2-Review-Log.md`](file:///c:/Users/aseka/Downloads/AidFast/documentation/Sprint-2-Review-Log.md) | Complete | Day 10 Sign-off |
+| **Day 6** | Pharmacy Profile & Operational Settings APIs | [`settingsRoutes.ts`]<br>[`settingsController.ts`] | Complete | PR #38 |
+
+| **Day 7** | Role-Based Sidebar Navigation & Settings Page UI | [`DashboardSidebar.tsx`]<br>[`SettingsPage.tsx`] | Complete | PR #40 |
+
+| **Day 8** | Staff User Management, Password Change & Audited Auth APIs | [`userRoutes.ts`]<br>[`userController.ts`]<br>[`auditLogger.ts`] | Complete | PR #41 |
+
+| **Day 9** | Internal Route Integration, Centralized Errors & Security Test Suite | [`errors.ts`]<br>[`errorHandler.ts`]<br>[`security.test.ts`] | Complete | Commit `86e6710` |
+
+| **Day 10** | Integrated Demo, Tenant Auth/Error Review & Blocker Triage | [`documentation/Sprint-2-Review-Log.md`] | Complete | Day 10 Sign-off |
 
 ---
 

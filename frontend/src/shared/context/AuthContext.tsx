@@ -22,7 +22,7 @@ const ROLE_PERMISSIONS_FALLBACK: Record<string, string[]> = {
     'returns:read', 'returns:create', 'returns:approve',
     'alerts:read',
     'requests:read', 'requests:respond',
-    'safety:read', 'safety:create', 'safety:verify',
+    'safety:read', 'safety:create', 'safety:verify', 'safety:action',
     'reports:read'
   ],
   STAFF: [
@@ -50,6 +50,7 @@ const ROLE_PERMISSIONS_FALLBACK: Record<string, string[]> = {
     'requests:read',
     'safety:read',
     'safety:verify',
+    'safety:action',
     'reports:read'
   ]
 };
