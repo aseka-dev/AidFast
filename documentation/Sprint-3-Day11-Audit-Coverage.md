@@ -13,9 +13,9 @@ Sprint 3 Day 11 extends AidFast's audit logging infrastructure from administrati
 
 1. **Access Permissions Review & Gap Closure:**
    - Identified and resolved the missing `safety:action` capability in the canonical permissions catalogue.
-   - Assigned `safety:action` to both **Pharmacist** and **Verifier** roles in [`backend/src/config/permissions.ts`](file:///c:/Users/aseka/Downloads/AidFast/backend/src/config/permissions.ts) and [`frontend/src/shared/context/AuthContext.tsx`](file:///c:/Users/aseka/Downloads/AidFast/frontend/src/shared/context/AuthContext.tsx).
-   - Hardened [`returnsRoutes.ts`](file:///c:/Users/aseka/Downloads/AidFast/backend/src/routes/returnsRoutes.ts) and [`salesRoutes.ts`](file:///c:/Users/aseka/Downloads/AidFast/backend/src/routes/salesRoutes.ts) with multi-tenant authentication (`authenticate`, `requireSelectedPharmacy`, `matchPharmacyParam`) and explicit RBAC permission guards.
-   - Mounted the Returns API under `/api/v1/pharmacies/:pharmacyId/returns` in [`server.ts`](file:///c:/Users/aseka/Downloads/AidFast/backend/src/server.ts).
+   - Assigned `safety:action` to both **Pharmacist** and **Verifier** roles in [`backend/src/config/permissions.ts`] and [`frontend/src/shared/context/AuthContext.tsx`].
+   - Hardened [`returnsRoutes.ts`] and [`salesRoutes.ts`] with multi-tenant authentication (`authenticate`, `requireSelectedPharmacy`, `matchPharmacyParam`) and explicit RBAC permission guards.
+   - Mounted the Returns API under `/api/v1/pharmacies/:pharmacyId/returns` in [`server.ts`].
 
 2. **Core Workflow Audit Trail Integration:**
    - **GRN Confirmation (`GRN_CONFIRMED`):** Captures GRN number, actor, verified items count, and inventory posting event.
@@ -24,10 +24,10 @@ Sprint 3 Day 11 extends AidFast's audit logging infrastructure from administrati
    - **Safety Match Actions (`SAFETY_ACTION_APPLIED`):** Audits recall actions (`BLOCK`, `QUARANTINE`, `RELEASE`), batch references, and clinical justifications.
 
 3. **High-Performance & Fail-Safe Logging Architecture:**
-   - Refactored [`auditLogger.ts`](file:///c:/Users/aseka/Downloads/AidFast/backend/src/utils/auditLogger.ts) to detect offline/disconnected unit tests without Mongoose connection, eliminating 10-second buffer timeouts and reducing test execution time from 42s to under 4.6s.
+   - Refactored [`auditLogger.ts`] to detect offline/disconnected unit tests without Mongoose connection, eliminating 10-second buffer timeouts and reducing test execution time from 42s to under 4.6s.
 
 4. **Automated Audit Coverage Test Suite:**
-   - Implemented [`backend/src/tests/auditTrail.test.ts`](file:///c:/Users/aseka/Downloads/AidFast/backend/src/tests/auditTrail.test.ts) featuring 12 test assertions covering all audit triggers and permission boundaries with a **100% pass rate**.
+   - Implemented [`backend/src/tests/auditTrail.test.ts`] featuring 12 test assertions covering all audit triggers and permission boundaries with a **100% pass rate**.
 
 ---
 
