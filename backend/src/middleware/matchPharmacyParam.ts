@@ -17,7 +17,7 @@ const matchPharmacyParam = (
         return;
     }
 
-    if (String(req.params.pharmacyId) !== String(req.user.pharmacyId)) {
+    if (req.params.pharmacyId && String(req.params.pharmacyId) !== String(req.user.pharmacyId)) {
         res.status(403).json({
             success: false,
             status: 'fail',

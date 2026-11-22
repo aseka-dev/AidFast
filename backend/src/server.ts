@@ -80,6 +80,7 @@ app.get('/api/health', (req, res) => {
   app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/pharmacies', pharmacyRoutes);
 app.use('/api/v1/settings', settingsRoutes);
+app.use('/api/v1/pharmacies/:pharmacyId/settings', settingsRoutes);
 app.use('/api/v1/users', userRoutes);
 
 
