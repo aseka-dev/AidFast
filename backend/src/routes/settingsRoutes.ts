@@ -10,22 +10,25 @@ import {
     requireSelectedPharmacy
 } from '../middleware/authMiddleware';
 
+import matchPharmacyParam from '../middleware/matchPharmacyParam';
 import requirePermission from '../middleware/permissionMiddleware';
 
-const router = Router();
+const router = Router({ mergeParams: true });
+
+router.use(
+    authenticate,
+    requireSelectedPharmacy,
+    matchPharmacyParam
+);
 
 router.get(
     '/',
-    authenticate,
-    requireSelectedPharmacy,
     requirePermission(['pharmacy:settings', 'pharmacy:settings:read']),
     getSettings
 );
 
 router.put(
     '/',
-    authenticate,
-    requireSelectedPharmacy,
     requirePermission('pharmacy:settings'),
     updateSettings
 );
