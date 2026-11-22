@@ -57,9 +57,18 @@ export const SettingsPage: React.FC = () => {
   const [lowStockEnabled, setLowStockEnabled] = useState(true);
   const [lowStockThreshold, setLowStockThreshold] = useState(10);
 
+  // Operational & Visibility Settings Fields
+  const [timezone, setTimezone] = useState('Asia/Colombo');
+  const [publicAvailabilityEnabled, setPublicAvailabilityEnabled] = useState(true);
+
   // System Settings Fields
   const [dateFormat, setDateFormat] = useState('DD MMM YYYY');
   const [currency, setCurrency] = useState('LKR \u2014 Sri Lankan Rupee');
+
+  const pharmacyId = currentPharmacy?.pharmacyId;
+  const settingsEndpoint = pharmacyId
+    ? apiUrl(`/api/v1/pharmacies/${pharmacyId}/settings`)
+    : apiUrl('/api/settings');
 
   // User Management State
   const [users, setUsers] = useState<StaffUser[]>([]);
@@ -105,7 +114,7 @@ export const SettingsPage: React.FC = () => {
     setIsLoading(true);
     try {
       // 1. Fetch Settings & Pharmacy Profile
-      const settingsRes = await authenticatedFetch(apiUrl('/api/settings'));
+      const settingsRes = await authenticatedFetch(settingsEndpoint);
       if (settingsRes.ok) {
         const data = await settingsRes.json();
         if (data.pharmacy) {
@@ -118,6 +127,8 @@ export const SettingsPage: React.FC = () => {
           setLowStockThreshold(data.settings.lowStockThreshold ?? 10);
           setDateFormat(data.settings.dateFormat || 'DD MMM YYYY');
           setCurrency(data.settings.currency || 'LKR \u2014 Sri Lankan Rupee');
+          setTimezone(data.settings.timezone || 'Asia/Colombo');
+          setPublicAvailabilityEnabled(data.settings.publicAvailabilityEnabled ?? true);
 
           const months = data.settings.expiryAlertMonths || [12, 9, 6];
           setExpiryAlertMonths(months.includes(12) ? 12 : 12);
@@ -137,13 +148,13 @@ export const SettingsPage: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [settingsEndpoint]);
 
   useEffect(() => {
     let isCancelled = false;
     const fetchData = async () => {
       try {
-        const settingsRes = await authenticatedFetch(apiUrl('/api/settings'));
+        const settingsRes = await authenticatedFetch(settingsEndpoint);
         if (!isCancelled && settingsRes.ok) {
           const data = await settingsRes.json();
           if (data.pharmacy) {
@@ -156,6 +167,8 @@ export const SettingsPage: React.FC = () => {
             setLowStockThreshold(data.settings.lowStockThreshold ?? 10);
             setDateFormat(data.settings.dateFormat || 'DD MMM YYYY');
             setCurrency(data.settings.currency || 'LKR \u2014 Sri Lankan Rupee');
+            setTimezone(data.settings.timezone || 'Asia/Colombo');
+            setPublicAvailabilityEnabled(data.settings.publicAvailabilityEnabled ?? true);
 
             const months = data.settings.expiryAlertMonths || [12, 9, 6];
             setExpiryAlertMonths(months.includes(12) ? 12 : 12);
@@ -183,7 +196,7 @@ export const SettingsPage: React.FC = () => {
     return () => {
       isCancelled = true;
     };
-  }, [currentPharmacy?.pharmacyId]);
+  }, [settingsEndpoint]);
 
   // Save Settings Handler
   const handleSaveSettings = async (e?: React.FormEvent) => {
@@ -205,13 +218,15 @@ export const SettingsPage: React.FC = () => {
         address,
         contactNumber: phoneNumber,
         email,
+        timezone,
         lowStockThreshold: Number(lowStockThreshold),
+        publicAvailabilityEnabled,
         expiryAlertMonths: activeAlertMonths.length > 0 ? activeAlertMonths : [12, 9, 6],
         dateFormat,
         currency
       };
 
-      const res = await authenticatedFetch(apiUrl('/api/settings'), {
+      const res = await authenticatedFetch(settingsEndpoint, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -634,12 +649,12 @@ export const SettingsPage: React.FC = () => {
               </div>
             </div>
 
-            {/* 2. Top-Right Card: Alert Settings */}
+            {/* 2. Top-Right Card: Alert Settings & Public Visibility */}
             <div className="bg-white rounded-2xl p-6 shadow-xs border border-gray-200/80 space-y-4">
               <div>
-                <h2 className="text-base font-bold text-gray-900">Alert Settings</h2>
+                <h2 className="text-base font-bold text-gray-900">Alert & Operational Thresholds</h2>
                 <p className="text-xs text-gray-500 mt-0.5">
-                  Thresholds used for operational inventory alerts.
+                  Thresholds and visibility rules used for operational inventory and community search.
                 </p>
               </div>
 
@@ -725,7 +740,7 @@ export const SettingsPage: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Low Stock (10 units) */}
+                {/* Low Stock Threshold */}
                 <div className="flex items-center justify-between gap-4">
                   <div className="flex items-center gap-3">
                     <button
@@ -741,24 +756,56 @@ export const SettingsPage: React.FC = () => {
                       />
                     </button>
                     <div>
-                      <p className="text-xs font-bold text-gray-900">Low Stock</p>
+                      <p className="text-xs font-bold text-gray-900">Low Stock Alert Threshold</p>
                       <p className="text-[11px] text-gray-400">
-                        Flag medicine stock when available units reach this level.
+                        Flag medicine inventory when saleable units fall below this number.
                       </p>
                     </div>
                   </div>
                   <div className="flex items-center gap-1">
                     <input
                       type="number"
-                      min={1}
+                      min={0}
                       disabled={isReadOnly}
                       value={lowStockThreshold}
-                      onChange={(e) => setLowStockThreshold(Number(e.target.value))}
+                      onChange={(e) => setLowStockThreshold(Math.max(0, Number(e.target.value)))}
                       className={`w-16 px-2 py-1 text-xs font-semibold text-center border border-amber-300 bg-amber-50/40 text-amber-800 rounded-xl focus:outline-hidden ${isReadOnly ? 'cursor-not-allowed' : ''
                         }`}
                     />
                     <span className="text-xs text-gray-500 font-medium">units</span>
                   </div>
+                </div>
+
+                {/* Public Stock Availability Visibility Toggle */}
+                <div className="pt-3 border-t border-gray-100 flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      disabled={isReadOnly}
+                      onClick={() => !isReadOnly && setPublicAvailabilityEnabled(!publicAvailabilityEnabled)}
+                      className={`relative inline-flex h-5 w-9 shrink-0 rounded-full transition-colors duration-200 ease-in-out focus:outline-hidden ${isReadOnly ? 'cursor-not-allowed opacity-85' : 'cursor-pointer'
+                        } ${publicAvailabilityEnabled ? 'bg-emerald-600' : 'bg-gray-300'}`}
+                    >
+                      <span
+                        className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition duration-200 ease-in-out mt-0.5 ml-0.5 ${publicAvailabilityEnabled ? 'translate-x-4' : 'translate-x-0'
+                          }`}
+                      />
+                    </button>
+                    <div>
+                      <p className="text-xs font-bold text-gray-900">Public Stock Availability Visibility</p>
+                      <p className="text-[11px] text-gray-400">
+                        Allow public community search to project safe stock availability without revealing exact unit quantities.
+                      </p>
+                    </div>
+                  </div>
+                  <span
+                    className={`px-3 py-1 rounded-xl text-xs font-semibold shrink-0 border ${publicAvailabilityEnabled
+                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                        : 'bg-gray-100 text-gray-500 border-gray-200'
+                      }`}
+                  >
+                    {publicAvailabilityEnabled ? 'Visible' : 'Hidden'}
+                  </span>
                 </div>
               </div>
             </div>
@@ -820,17 +867,43 @@ export const SettingsPage: React.FC = () => {
               </div>
             </div>
 
-            {/* 4. Bottom-Right Card: System Settings */}
+            {/* 4. Bottom-Right Card: System & Regional Settings */}
             <div className="bg-white rounded-2xl p-6 shadow-xs border border-gray-200/80 space-y-4">
               <div>
-                <h2 className="text-base font-bold text-gray-900">System Settings</h2>
+                <h2 className="text-base font-bold text-gray-900">System & Regional Settings</h2>
                 <p className="text-xs text-gray-500 mt-0.5">
-                  Display preferences for this pharmacy workspace.
+                  Timezone, date format, and currency preferences for this pharmacy workspace.
                 </p>
               </div>
 
               <div className="space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+                  {/* Pharmacy Timezone */}
+                  <div>
+                    <label htmlFor="systemTimezone" className="block text-xs font-medium text-gray-500 mb-1">
+                      Timezone
+                    </label>
+                    <select
+                      id="systemTimezone"
+                      disabled={isReadOnly}
+                      value={timezone}
+                      onChange={(e) => setTimezone(e.target.value)}
+                      className={`w-full px-3 py-2 text-xs rounded-xl transition ${isReadOnly
+                          ? 'bg-gray-50 text-gray-700 cursor-not-allowed border border-gray-200'
+                          : 'bg-white border border-gray-300 focus:outline-hidden focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600'
+                        }`}
+                    >
+                      <option value="Asia/Colombo">Asia/Colombo (GMT+05:30)</option>
+                      <option value="UTC">UTC (GMT+00:00)</option>
+                      <option value="Asia/Kolkata">Asia/Kolkata (GMT+05:30)</option>
+                      <option value="Asia/Singapore">Asia/Singapore (GMT+08:00)</option>
+                      <option value="Europe/London">Europe/London (GMT+00:00)</option>
+                      <option value="America/New_York">America/New_York (GMT-05:00)</option>
+                    </select>
+                    <p className="text-[11px] text-gray-400 mt-1">Calendar & expiry date evaluation</p>
+                  </div>
+
+                  {/* Date Format */}
                   <div>
                     <label htmlFor="systemDateFormat" className="block text-xs font-medium text-gray-500 mb-1">
                       Date format
@@ -840,9 +913,9 @@ export const SettingsPage: React.FC = () => {
                       disabled={isReadOnly}
                       value={dateFormat}
                       onChange={(e) => setDateFormat(e.target.value)}
-                      className={`w-full px-3.5 py-2.5 text-sm rounded-xl transition ${isReadOnly
+                      className={`w-full px-3 py-2 text-xs rounded-xl transition ${isReadOnly
                           ? 'bg-gray-50 text-gray-700 cursor-not-allowed border border-gray-200'
-                          : 'bg-white border border-gray-300 focus:outline-hidden focus:border-emerald-600'
+                          : 'bg-white border border-gray-300 focus:outline-hidden focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600'
                         }`}
                     >
                       <option value="DD MMM YYYY">DD MMM YYYY</option>
@@ -852,6 +925,7 @@ export const SettingsPage: React.FC = () => {
                     <p className="text-[11px] text-gray-400 mt-1">Example: 01 Oct 2026</p>
                   </div>
 
+                  {/* Currency */}
                   <div>
                     <label htmlFor="systemCurrency" className="block text-xs font-medium text-gray-500 mb-1">
                       Currency
@@ -861,9 +935,9 @@ export const SettingsPage: React.FC = () => {
                       disabled={isReadOnly}
                       value={currency}
                       onChange={(e) => setCurrency(e.target.value)}
-                      className={`w-full px-3.5 py-2.5 text-sm rounded-xl transition ${isReadOnly
+                      className={`w-full px-3 py-2 text-xs rounded-xl transition ${isReadOnly
                           ? 'bg-gray-50 text-gray-700 cursor-not-allowed border border-gray-200'
-                          : 'bg-white border border-gray-300 focus:outline-hidden focus:border-emerald-600'
+                          : 'bg-white border border-gray-300 focus:outline-hidden focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600'
                         }`}
                     >
                       <option value="LKR \u2014 Sri Lankan Rupee">LKR \u2014 Sri Lankan Rupee</option>
